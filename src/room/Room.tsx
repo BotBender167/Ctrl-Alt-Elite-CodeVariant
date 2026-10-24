@@ -53,7 +53,7 @@ function Walk() {
   const shown = useRef(-1)
   const settle = useRef(0)
   const drawn = useMotionValue(0)
-  const [src] = useState(introSource)
+  const [src, setSrc] = useState(introSource)
   const { w, h } = useViewport()
   const { scrollYProgress } = useScroll()
   const smooth = useSpring(scrollYProgress, { stiffness: 100, damping: 26, mass: 0.5 })
@@ -84,6 +84,34 @@ function Walk() {
   })
 
   useEffect(() => () => window.clearTimeout(settle.current), [])
+
+  // A seek asked for before the file's header arrived is dropped, so it is replayed once the video can show a
+  // frame. The first decode is also primed (play then pause, muted), because phones will not paint a scrubbed
+  // frame from a video that has never played. A 1440p file the device cannot decode falls back to 1080p.
+  useEffect(() => {
+    const el = video.current
+    if (!el) return
+    let primed = false
+    const ready = () => {
+      if (primed) return
+      primed = true
+      el.play().then(
+        () => {
+          el.pause()
+          showFrame(Math.max(0, shown.current))
+        },
+        () => showFrame(Math.max(0, shown.current)),
+      )
+    }
+    const failed = () => setSrc((s) => (s.endsWith('intro-1440.mp4') ? s.replace('intro-1440', 'intro-1080') : s))
+    el.addEventListener('loadeddata', ready)
+    el.addEventListener('error', failed)
+    if (el.readyState >= 2) ready()
+    return () => {
+      el.removeEventListener('loadeddata', ready)
+      el.removeEventListener('error', failed)
+    }
+  }, [src])
 
   return (
     <>
