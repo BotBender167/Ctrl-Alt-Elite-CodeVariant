@@ -14,7 +14,7 @@
       ]
     },
     {
-      "source": "/(.*)\.(mp4|wav|jpg)",
+      "source": "/(intro-.*|room-.*|ambience.wav)",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400" }]
     },
     {
