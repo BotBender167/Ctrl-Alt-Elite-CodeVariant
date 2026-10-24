@@ -27,10 +27,12 @@ export function ActionZone({ id, accepts, title, sub, icon, onDrop, count }: Pro
   )
 }
 
-// The row of zones along the bottom of a screen.
-export function ZoneTray({ children }: { children: ReactNode }) {
+// The row of zones along the bottom of a screen. Anything passed as `above` sits directly over the row, in the
+// same column, so a bar above the zones can never run into them whatever size they are.
+export function ZoneTray({ children, above }: { children: ReactNode; above?: ReactNode }) {
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-4 z-20 flex justify-center px-3">
+    <div className="pointer-events-none fixed inset-x-0 bottom-4 z-20 flex flex-col items-center gap-4 px-3">
+      {above}
       <div className="pointer-events-auto grid w-full max-w-3xl grid-flow-col auto-cols-fr gap-2 sm:gap-3">{children}</div>
     </div>
   )

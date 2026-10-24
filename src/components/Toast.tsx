@@ -12,7 +12,7 @@ export function ToastHost() {
   }, [id, message, clear])
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-40 z-[60] flex justify-center px-3">
+    <div className="pointer-events-none fixed inset-x-0 bottom-52 z-[60] flex justify-center px-3">
       <AnimatePresence>
         {message && (
           <motion.div

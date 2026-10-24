@@ -15,7 +15,7 @@ interface Props {
   onPage: (p: number) => void
 }
 
-// The quiet controls, in one place just above the zones. Each one has one job: say whose board this is, choose which
+// The quiet controls, in one bar directly above the zones. Each one has one job: say whose board this is, choose which
 // projects are pinned, flip between pages of them, and bring back anything you shredded. The actions
 // themselves live in the zones at the bottom.
 export function Dock({ user, filter, quietCount, allCount, page, pageCount, shredded, onRestore, onFilter, onPage }: Props) {
@@ -27,7 +27,7 @@ export function Dock({ user, filter, quietCount, allCount, page, pageCount, shre
   ]
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-[88px] z-20 flex justify-center px-3">
+    <div className="pointer-events-none flex justify-center">
       <div className="pointer-events-auto flex flex-wrap items-center justify-center gap-1 rounded-full bg-room/85 p-1 ring-1 ring-cream/15 backdrop-blur-sm">
         <span className="px-3 text-sm text-mist">@{user}</span>
         <LayoutGroup id="dock">

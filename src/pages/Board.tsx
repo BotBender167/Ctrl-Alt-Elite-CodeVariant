@@ -240,26 +240,29 @@ export default function Board() {
 
         {query.isSuccess && all.length > 0 && (
           <>
-            <Dock
-              user={user}
-              filter={effective}
-              quietCount={quiet.length}
-              allCount={items.length}
-              page={safePage}
-              pageCount={pageCount}
-              shredded={shreddedCount}
-              onRestore={() => showAll(user)}
-              onFilter={changeFilter}
-              onPage={(p) => {
-                setPage(p)
-                setLit(null)
-              }}
-            />
-            <ZoneTray>
-              <ActionZone id="examine" accepts={[CARD.repo]} title="Examine" sub="Open the case file" icon={<MagnifyingGlass size={26} weight="bold" />} onDrop={examine} />
-              <ActionZone id="keep" accepts={[CARD.repo]} title="Keep" sub="Mark it for later" icon={<Archive size={26} weight="bold" />} onDrop={keepIt} count={Object.keys(kept).filter((k) => k.startsWith(`${user.toLowerCase()}/`)).length} />
-              <ActionZone id="shred" accepts={[CARD.repo]} title="Shred" sub="Take it off the board" icon={<Trash size={26} weight="bold" />} onDrop={shred} />
-              <ActionZone id="switch" accepts={[CARD.profile]} title="Switch profile" sub="Drag your circle here" icon={<UserSwitch size={26} weight="bold" />} onDrop={switchProfile} />
+            <ZoneTray
+              above={
+                <Dock
+                  user={user}
+                  filter={effective}
+                  quietCount={quiet.length}
+                  allCount={items.length}
+                  page={safePage}
+                  pageCount={pageCount}
+                  shredded={shreddedCount}
+                  onRestore={() => showAll(user)}
+                  onFilter={changeFilter}
+                  onPage={(p) => {
+                    setPage(p)
+                    setLit(null)
+                  }}
+                />
+              }
+            >
+              <ActionZone id="examine" accepts={[CARD.repo]} title="Examine" sub="Open case file" icon={<MagnifyingGlass size={26} weight="bold" />} onDrop={examine} />
+              <ActionZone id="keep" accepts={[CARD.repo]} title="Keep" sub="Mark for later" icon={<Archive size={26} weight="bold" />} onDrop={keepIt} count={Object.keys(kept).filter((k) => k.startsWith(`${user.toLowerCase()}/`)).length} />
+              <ActionZone id="shred" accepts={[CARD.repo]} title="Shred" sub="Off the board" icon={<Trash size={26} weight="bold" />} onDrop={shred} />
+              <ActionZone id="switch" accepts={[CARD.profile]} title="Switch profile" sub="Drag your circle" icon={<UserSwitch size={26} weight="bold" />} onDrop={switchProfile} />
             </ZoneTray>
           </>
         )}
