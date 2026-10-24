@@ -1,15 +1,24 @@
-import { Link } from 'react-router-dom'
+import { MagnifyingGlass, Trash } from '@phosphor-icons/react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ActionZone, ZoneTray } from '../components/ActionZone'
 import { Page, Reveal } from '../components/Page'
 import { Stamp } from '../components/Stamp'
+import { toast } from '../lib/toast'
 import { CAUSE_LABEL, CAUSES, ROAD_LABEL } from '../config/rules'
 import { useTitle } from '../hooks/useTitle'
 import { fmtDate, fmtDays } from '../lib/format'
+import { Grip } from '../features/board/Note'
+import { CARD } from '../features/dnd/types'
+import { useDraggable } from '../features/dnd/useDraggable'
+import type { ArchiveEntry } from '../store'
 import { useArchive } from '../store'
 
 export default function Archive() {
   useTitle('Archive')
   const entries = useArchive((s) => s.entries)
   const remove = useArchive((s) => s.remove)
+  const put = useArchive((s) => s.put)
+  const navigate = useNavigate()
   const list = Object.values(entries).sort((a, b) => b.savedAt.localeCompare(a.savedAt))
 
   const byCause = CAUSES.map((c) => ({ c, n: list.filter((e) => e.cause === c).length }))
@@ -23,8 +32,22 @@ export default function Archive() {
   const short = lives.filter((n) => n <= 14).length
   const top = byCause[0]
 
+  const isEntry = (v: unknown): v is ArchiveEntry => typeof v === 'object' && v !== null && 'key' in v && 'repo' in v && 'owner' in v
+
+  function reopen(payload: unknown): boolean {
+    if (!isEntry(payload)) return false
+    navigate(`/u/${payload.owner}/${payload.repo}`)
+    return true
+  }
+  function shred(payload: unknown): boolean {
+    if (!isEntry(payload)) return false
+    remove(payload.key)
+    toast(`${payload.repo} shredded from your archive.`, () => put(payload))
+    return true
+  }
+
   return (
-    <Page className="relative z-10 mx-auto w-full max-w-3xl px-4 pb-24 pt-24 sm:px-6">
+    <Page className="relative z-10 mx-auto w-full max-w-3xl px-4 pb-40 pt-24 sm:px-6">
       <Reveal>
         <h1 className="text-[clamp(36px,6vw,60px)]">Your archive</h1>
         <p className="mt-2 text-lg text-cream/90">Every verdict you saved, kept in this browser so you can come back to it.</p>
@@ -66,34 +89,48 @@ export default function Archive() {
           </Reveal>
 
           <Reveal index={2}>
-            <ul className="paper mt-5 p-1.5">
+            <p className="mt-5 text-cream/80">Drag a verdict onto Reopen to continue it, or onto Shred to remove it.</p>
+            <ul className="paper mt-2 p-1.5">
               {list.map((e) => (
-                <li key={e.key} className="flex items-center gap-4 rounded-md px-4 py-3.5">
-                  <div className="min-w-0 flex-1">
-                    <p className="flex flex-wrap items-baseline gap-x-3">
-                      <span className="truncate font-display text-lg">{e.repo}</span>
-                      <Stamp status={e.status} />
-                    </p>
-                    <p className="mt-0.5 text-sm text-ink-soft">
-                      {ROAD_LABEL[e.road]} chosen. It stopped because: {CAUSE_LABEL[e.cause].toLowerCase()}. Saved {fmtDate(e.savedAt)}.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    className="text-sm text-ink-soft underline decoration-ink/30 underline-offset-4 hover:text-ink"
-                    onClick={() => remove(e.key)}
-                  >
-                    Remove
-                  </button>
-                  <Link to={`/u/${e.owner}/${e.repo}`} className="btn ink small">
-                    Reopen
-                  </Link>
-                </li>
+                <ArchiveRow key={e.key} entry={e} />
               ))}
             </ul>
           </Reveal>
+
         </>
       )}
+
+      {list.length > 0 && (
+        <ZoneTray>
+          <ActionZone
+            id="reopen"
+            accepts={[CARD.entry]}
+            title="Reopen"
+            sub="Back to its case file"
+            icon={<MagnifyingGlass size={26} weight="bold" />}
+            onDrop={reopen}
+          />
+          <ActionZone id="shred" accepts={[CARD.entry]} title="Shred" sub="Remove the verdict" icon={<Trash size={26} weight="bold" />} onDrop={shred} />
+        </ZoneTray>
+      )}
     </Page>
+  )
+}
+
+function ArchiveRow({ entry: e }: { entry: ArchiveEntry }) {
+  const drag = useDraggable({ type: CARD.entry, payload: e, label: e.repo, ariaLabel: `${e.repo}, verdict ${ROAD_LABEL[e.road]}` })
+  return (
+    <li data-drag-item {...drag.pointer} {...drag.keyboard} className="drag-row flex items-center gap-2 rounded-md px-2 py-3.5">
+      <Grip />
+      <div className="min-w-0 flex-1">
+        <p className="flex flex-wrap items-baseline gap-x-3">
+          <span className="truncate font-display text-lg">{e.repo}</span>
+          <Stamp status={e.status} />
+        </p>
+        <p className="mt-0.5 text-sm text-ink-soft">
+          {ROAD_LABEL[e.road]} chosen. It stopped because: {CAUSE_LABEL[e.cause].toLowerCase()}. Saved {fmtDate(e.savedAt)}.
+        </p>
+      </div>
+    </li>
   )
 }

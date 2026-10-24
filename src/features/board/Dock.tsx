@@ -9,13 +9,16 @@ interface Props {
   allCount: number
   page: number
   pageCount: number
+  shredded: number
+  onRestore: () => void
   onFilter: (f: BoardFilter) => void
   onPage: (p: number) => void
 }
 
-// The only controls on the board, in one place at the bottom. Each one has one job:
-// say whose board this is, choose which projects are pinned, and flip between pages of them.
-export function Dock({ user, filter, quietCount, allCount, page, pageCount, onFilter, onPage }: Props) {
+// The quiet controls, in one place just above the zones. Each one has one job: say whose board this is, choose which
+// projects are pinned, flip between pages of them, and bring back anything you shredded. The actions
+// themselves live in the zones at the bottom.
+export function Dock({ user, filter, quietCount, allCount, page, pageCount, shredded, onRestore, onFilter, onPage }: Props) {
   const reduce = useReducedMotion()
   const glide = reduce ? { duration: 0 } : { type: 'spring' as const, duration: 0.35, bounce: 0.1 }
   const tabs: Array<{ id: BoardFilter; label: string; n: number }> = [
@@ -24,7 +27,7 @@ export function Dock({ user, filter, quietCount, allCount, page, pageCount, onFi
   ]
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-4 z-20 flex justify-center px-3">
+    <div className="pointer-events-none fixed inset-x-0 bottom-[88px] z-20 flex justify-center px-3">
       <div className="pointer-events-auto flex flex-wrap items-center justify-center gap-1 rounded-full bg-room/85 p-1 ring-1 ring-cream/15 backdrop-blur-sm">
         <span className="px-3 text-sm text-mist">@{user}</span>
         <LayoutGroup id="dock">
@@ -69,6 +72,15 @@ export function Dock({ user, filter, quietCount, allCount, page, pageCount, onFi
               Next
             </button>
           </div>
+        )}
+        {shredded > 0 && (
+          <button
+            type="button"
+            className="rounded-full px-3 py-2 text-sm text-accent transition-colors duration-150 hover:text-cream"
+            onClick={onRestore}
+          >
+            Bring back {shredded} shredded
+          </button>
         )}
       </div>
     </div>

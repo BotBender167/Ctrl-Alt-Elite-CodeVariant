@@ -36,7 +36,9 @@ export function Page({ children, className = '' }: { children: ReactNode; classN
 
 // A screen that only fades. Used where children are positioned against the viewport (the board and its
 // case file), because a transformed ancestor would break fixed positioning.
-export function Screen({ children, className = '' }: { children: ReactNode; className?: string }) {
+// With `hold`, the screen leaves instantly so the next one can take its place without a blink (the home
+// screen hands its profile circle straight to the board).
+export function Screen({ children, className = '', hold = false }: { children: ReactNode; className?: string; hold?: boolean }) {
   const ref = useRef<HTMLElement>(null)
   useEffect(() => {
     ref.current?.focus({ preventScroll: true })
@@ -49,7 +51,7 @@ export function Screen({ children, className = '' }: { children: ReactNode; clas
       className={`outline-none ${className}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0, transition: { duration: 0.2 } }}
+      exit={{ opacity: hold ? 1 : 0, transition: { duration: hold ? 0 : 0.2 } }}
       transition={{ duration: 0.35 }}
     >
       {children}

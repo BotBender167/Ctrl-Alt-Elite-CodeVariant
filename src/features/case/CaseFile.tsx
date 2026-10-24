@@ -8,6 +8,8 @@ import { useArchive } from '../../store'
 import { useCaseModel } from './model'
 import type { CaseModel } from './model'
 import { StepAround, StepMove, StepWhen, StepWhy } from './Steps'
+import { VerdictZone } from './VerdictZone'
+import type { Road } from '../../config/rules'
 
 const STEPS = [
   { id: 'when', label: 'When it stopped', short: 'When' },
@@ -145,14 +147,15 @@ function FileBody({ data, onClose }: { data: NonNullable<ReturnType<typeof usePr
     scroller.current?.scrollTo({ top: 0 })
   }
 
-  function handleSave(): void {
+  function handleSave(road: Road): void {
+    m.setRoad(road)
     save({
       key,
       owner: m.meta.owner.login,
       repo: m.meta.name,
       status: m.cls.status,
       cause: m.cause,
-      road: m.road,
+      road,
       lifeDays: m.lifeDays,
       burstShare: m.stats?.burstShare ?? null,
       daysSilent: m.daysSilent,
@@ -211,27 +214,19 @@ function FileBody({ data, onClose }: { data: NonNullable<ReturnType<typeof usePr
         <button type="button" className="btn line small" disabled={step === 0} onClick={() => go(step - 1)}>
           Back
         </button>
-        <p className="hidden text-sm text-ink-soft sm:block" aria-hidden="true">
-          Step {step + 1} of {STEPS.length}
-        </p>
         {last ? (
-          <button type="button" className="btn ink small" onClick={handleSave}>
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.span
-                key={justSaved ? 'saved' : saved ? 'update' : 'save'}
-                initial={{ opacity: 0, transform: reduce ? 'none' : 'translateY(6px)' }}
-                animate={{ opacity: 1, transform: 'translateY(0px)' }}
-                exit={{ opacity: 0, transition: { duration: 0.08 } }}
-                transition={{ duration: 0.16, ease: EASE_OUT }}
-              >
-                {justSaved ? 'Saved' : saved ? 'Update my saved verdict' : 'Save my verdict'}
-              </motion.span>
-            </AnimatePresence>
-          </button>
+          <div className="min-w-0 flex-1">
+            <VerdictZone saved={saved} justSaved={justSaved} onSave={handleSave} />
+          </div>
         ) : (
-          <button type="button" className="btn ink small" onClick={() => go(step + 1)}>
-            Next: {STEPS[step + 1]?.label}
-          </button>
+          <>
+            <p className="hidden text-sm text-ink-soft sm:block" aria-hidden="true">
+              Step {step + 1} of {STEPS.length}
+            </p>
+            <button type="button" className="btn ink small" onClick={() => go(step + 1)}>
+              Next: {STEPS[step + 1]?.label}
+            </button>
+          </>
         )}
       </div>
     </>

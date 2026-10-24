@@ -1,14 +1,20 @@
+import { DotsSixVertical, Scales, X } from '@phosphor-icons/react'
 import { motion, useReducedMotion } from 'motion/react'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { ErrorPanel } from '../../components/ErrorPanel'
+import { toast } from '../../lib/toast'
 import { RoadPanel } from '../../components/RoadPanel'
 import { Trail } from '../../components/Trail'
 import { CAUSE_LABEL } from '../../config/rules'
 import { fmtDate, fmtDays, fmtStars } from '../../lib/format'
 import { EASE_OUT } from '../../lib/motion'
 import { LIKELIHOOD_LABEL } from '../../lib/rules'
+import type { Repo } from '../../lib/types'
 import type { ArchiveEntry } from '../../store'
+import { DropZone } from '../dnd/DropZone'
+import { CARD } from '../dnd/types'
+import { useDraggable } from '../dnd/useDraggable'
 import { CompareTable } from './CompareTable'
 import { MAX_COMPARE } from './model'
 import type { CaseModel } from './model'
@@ -94,8 +100,10 @@ export function StepAround({ m }: { m: CaseModel }) {
     <div>
       <p className="font-hand text-3xl leading-none">Who else built this?</p>
       <p className="mt-2 text-ink-soft">
-        Projects like yours that appeared after {fmtDate(m.lastDate)}. Add up to {MAX_COMPARE} to compare in the last step.
+        Projects like yours that appeared after {fmtDate(m.lastDate)}. Drag up to {MAX_COMPARE} into the tray to compare them in the last step.
       </p>
+
+      <CompareTray m={m} />
 
       <ul className="mt-4 flex flex-wrap items-center gap-1.5" aria-label="Search words">
         {m.keywords.map((k) => (
@@ -154,44 +162,7 @@ export function StepAround({ m }: { m: CaseModel }) {
           </p>
           <ul className="mt-2 space-y-1.5">
             {similar.map((r, i) => {
-              const picked = m.picks.some((p) => p.id === r.id)
-              const full = !picked && m.picks.length >= MAX_COMPARE
-              return (
-                <motion.li
-                  key={r.id}
-                  className="flex items-start gap-3 rounded-md bg-ink/[0.04] px-3 py-2.5"
-                  initial={{ opacity: 0, transform: reduce ? 'none' : 'translateY(8px)' }}
-                  animate={{ opacity: 1, transform: 'translateY(0px)' }}
-                  transition={{ duration: 0.3, ease: EASE_OUT, delay: reduce ? 0 : Math.min(i, 6) * 0.04 }}
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="flex flex-wrap items-baseline gap-x-3">
-                      <a
-                        href={r.html_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="truncate font-semibold underline decoration-ink/30 underline-offset-4 hover:decoration-string"
-                      >
-                        {r.full_name}
-                      </a>
-                      <span className="text-sm text-ink-soft">
-                        {fmtStars(r.stargazers_count)} stars, started {new Date(r.created_at).getFullYear()}
-                      </span>
-                    </p>
-                    {r.description && <p className="mt-0.5 line-clamp-2 text-sm text-ink-soft">{r.description}</p>}
-                  </div>
-                  <button
-                    type="button"
-                    aria-pressed={picked}
-                    disabled={full}
-                    title={full ? `You can compare up to ${MAX_COMPARE} projects` : undefined}
-                    className={`btn small flex-none ${picked ? 'ink' : 'line'}`}
-                    onClick={() => m.togglePick(r)}
-                  >
-                    {picked ? 'Added' : 'Compare'}
-                  </button>
-                </motion.li>
-              )
+              return <SimilarRow key={r.id} repo={r} index={i} picked={m.picks.some((p) => p.id === r.id)} reduce={Boolean(reduce)} />
             })}
           </ul>
           <p className="mt-2 text-xs text-ink-soft/90">Similar is not the same idea. Use this as evidence and judge for yourself.</p>
@@ -213,7 +184,7 @@ export function StepMove({ m, saved, justSaved, onBackToBoard }: MoveProps) {
     <div>
       <p className="font-hand text-3xl leading-none">How do you want to start?</p>
       <p className="mt-2 text-ink-soft">
-        {m.picks.length > 0 ? 'Here is how your project stacks up against the ones you picked.' : 'You did not pick any project to compare, and that is fine.'}
+        {m.picks.length > 0 ? 'Here is how your project stacks up against the ones in your tray.' : 'Your compare tray is empty, and that is fine.'}
       </p>
 
       {m.picks.length > 0 && (
@@ -222,7 +193,8 @@ export function StepMove({ m, saved, justSaved, onBackToBoard }: MoveProps) {
         </div>
       )}
 
-      <div className="mt-6">
+      <p className="mt-6 text-ink-soft">Click a road to read why. Drag the one you choose onto the verdict stamp at the bottom.</p>
+      <div className="mt-3">
         <RoadPanel roads={m.roads} chosen={m.road} onChoose={m.setRoad} />
       </div>
 
@@ -244,5 +216,94 @@ export function StepMove({ m, saved, justSaved, onBackToBoard }: MoveProps) {
         </div>
       )}
     </div>
+  )
+}
+
+function isRepo(v: unknown): v is Repo {
+  return typeof v === 'object' && v !== null && 'id' in v && 'full_name' in v
+}
+
+// The compare tray stays in view while the list scrolls, so a card never has to travel far to reach it.
+function CompareTray({ m }: { m: CaseModel }) {
+  return (
+    <div className="z-10 -mx-1 mt-4 bg-gradient-to-b from-[#e6d9bc] via-[#e6d9bc]/95 to-transparent px-1 pb-3 pt-1" style={{ position: 'sticky', top: 0 }}>
+      <DropZone
+        id="compare"
+        accepts={[CARD.similar]}
+        label={`Compare tray, ${m.picks.length} of ${MAX_COMPARE}. Drop a similar project here to compare it.`}
+        className="on-paper flex min-h-[64px] flex-wrap items-center gap-2 px-3 py-2"
+        onDrop={(payload) => {
+          if (!isRepo(payload)) return false
+          if (m.picks.some((p) => p.id === payload.id)) {
+            toast(`${payload.full_name} is already in the tray.`)
+            return false
+          }
+          if (m.picks.length >= MAX_COMPARE) {
+            toast(`The tray holds ${MAX_COMPARE}. Take one out first.`)
+            return false
+          }
+          m.togglePick(payload)
+        }}
+      >
+        <Scales size={24} weight="bold" className="flex-none text-string" aria-hidden="true" />
+        <span className="text-sm font-semibold">
+          Compare tray {m.picks.length}/{MAX_COMPARE}
+        </span>
+        {m.picks.length === 0 && <span className="text-sm text-ink-soft">Drop a project here.</span>}
+        {m.picks.map((r) => (
+          <span key={r.id} className="flex items-center gap-1 rounded-full bg-ink py-1 pl-3 pr-1 text-sm text-cream">
+            {r.full_name}
+            <button
+              type="button"
+              aria-label={`Take ${r.full_name} out of the tray`}
+              className="grid h-6 w-6 place-items-center rounded-full text-cream/70 transition-colors duration-150 hover:bg-cream/15 hover:text-cream"
+              onClick={() => m.togglePick(r)}
+            >
+              <X size={14} weight="bold" aria-hidden="true" />
+            </button>
+          </span>
+        ))}
+      </DropZone>
+    </div>
+  )
+}
+
+function SimilarRow({ repo: r, index, picked, reduce }: { repo: Repo; index: number; picked: boolean; reduce: boolean }) {
+  const drag = useDraggable({ type: CARD.similar, payload: r, label: r.full_name })
+  return (
+    <motion.li
+      data-drag-item
+      {...drag.pointer}
+      className={`drag-row flex items-start gap-2 rounded-md px-2 py-2.5 ${picked ? 'bg-string/10' : 'bg-ink/[0.04]'}`}
+      initial={{ opacity: 0, transform: reduce ? 'none' : 'translateY(8px)' }}
+      animate={{ opacity: 1, transform: 'translateY(0px)' }}
+      transition={{ duration: 0.3, ease: EASE_OUT, delay: reduce ? 0 : Math.min(index, 6) * 0.04 }}
+    >
+      <button
+        type="button"
+        data-handle
+        {...drag.keyboard}
+        className="grid h-8 w-7 flex-none place-items-center rounded-md text-ink-soft transition-colors duration-150 hover:bg-ink/10 hover:text-ink"
+      >
+        <DotsSixVertical size={20} weight="bold" aria-hidden="true" />
+      </button>
+      <div className="min-w-0 flex-1">
+        <p className="flex flex-wrap items-baseline gap-x-3">
+          <a
+            href={r.html_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="truncate font-semibold underline decoration-ink/30 underline-offset-4 hover:decoration-string"
+          >
+            {r.full_name}
+          </a>
+          <span className="text-sm text-ink-soft">
+            {fmtStars(r.stargazers_count)} stars, started {new Date(r.created_at).getFullYear()}
+            {picked && ', in the tray'}
+          </span>
+        </p>
+        {r.description && <p className="mt-0.5 line-clamp-2 text-sm text-ink-soft">{r.description}</p>}
+      </div>
+    </motion.li>
   )
 }

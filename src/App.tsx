@@ -3,6 +3,8 @@ import { lazy, Suspense } from 'react'
 import { Link, Route, Routes, useLocation } from 'react-router-dom'
 import { Nav } from './components/Nav'
 import { Page } from './components/Page'
+import { ToastHost } from './components/Toast'
+import { DndLive } from './features/dnd/DropZone'
 import { useTitle } from './hooks/useTitle'
 import Board from './pages/Board'
 import Home from './pages/Home'
@@ -43,6 +45,8 @@ export default function App() {
       </a>
       <Room mode={outside ? 'outside' : 'inside'} />
       <Nav />
+      <DndLive />
+      <ToastHost />
       <AnimatePresence mode="wait">
         <Suspense fallback={null}>
           <Routes location={location} key={routeKey(location.pathname)}>

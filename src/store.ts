@@ -19,6 +19,8 @@ export interface ArchiveEntry {
 interface ArchiveState {
   entries: Record<string, ArchiveEntry>
   save: (entry: Omit<ArchiveEntry, 'savedAt'>) => void
+  // Puts a saved entry back exactly as it was (used by Undo after shredding).
+  put: (entry: ArchiveEntry) => void
   remove: (key: string) => void
 }
 
@@ -28,12 +30,42 @@ export const useArchive = create<ArchiveState>()(
       entries: {},
       save: (entry) =>
         set((s) => ({ entries: { ...s.entries, [entry.key]: { ...entry, savedAt: new Date().toISOString() } } })),
+      put: (entry) => set((s) => ({ entries: { ...s.entries, [entry.key]: entry } })),
       remove: (key) =>
         set((s) => ({
           entries: Object.fromEntries(Object.entries(s.entries).filter(([k]) => k !== key)),
         })),
     }),
     { name: 'ub:v1:archive' },
+  ),
+)
+
+// Triage on the board: notes you kept for later, and notes you shredded off the board (not from GitHub).
+interface BoardState {
+  kept: Record<string, true>
+  hidden: Record<string, true>
+  keep: (key: string) => void
+  unkeep: (key: string) => void
+  hide: (key: string) => void
+  show: (key: string) => void
+  showAll: (owner: string) => void
+}
+
+const without = (rec: Record<string, true>, drop: (k: string) => boolean): Record<string, true> =>
+  Object.fromEntries(Object.entries(rec).filter(([k]) => !drop(k)))
+
+export const useBoard = create<BoardState>()(
+  persist(
+    (set) => ({
+      kept: {},
+      hidden: {},
+      keep: (key) => set((s) => ({ kept: { ...s.kept, [key]: true } })),
+      unkeep: (key) => set((s) => ({ kept: without(s.kept, (k) => k === key) })),
+      hide: (key) => set((s) => ({ hidden: { ...s.hidden, [key]: true } })),
+      show: (key) => set((s) => ({ hidden: without(s.hidden, (k) => k === key) })),
+      showAll: (owner) => set((s) => ({ hidden: without(s.hidden, (k) => k.startsWith(`${owner.toLowerCase()}/`)) })),
+    }),
+    { name: 'ub:v1:board' },
   ),
 )
 

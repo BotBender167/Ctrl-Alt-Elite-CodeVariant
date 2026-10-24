@@ -1,5 +1,8 @@
+import { DotsSixVertical } from '@phosphor-icons/react'
 import { animate, AnimatePresence, motion, useMotionValue, useReducedMotion, useTransform } from 'motion/react'
 import { useEffect } from 'react'
+import { CARD } from '../features/dnd/types'
+import { useDraggable } from '../features/dnd/useDraggable'
 import { ROAD_FIRST_STEP, ROAD_HELP, ROAD_LABEL, ROADS } from '../config/rules'
 import type { Road } from '../config/rules'
 import { EASE_OUT } from '../lib/motion'
@@ -28,6 +31,46 @@ interface Props {
   onChoose: (road: Road) => void
 }
 
+interface RowProps {
+  road: Road
+  score: number
+  on: boolean
+  best: boolean
+  glide: object
+  onChoose: (road: Road) => void
+}
+
+// One road. Clicking it only previews the reasons below. Dragging it onto the verdict stamp is what commits.
+function RoadRow({ road, score, on, best, glide, onChoose }: RowProps) {
+  const drag = useDraggable({ type: CARD.road, payload: road, label: `${ROAD_LABEL[road]} road`, ariaLabel: `Take the ${ROAD_LABEL[road]} road, score ${score}` })
+  return (
+    <div data-drag-item {...drag.pointer} className="drag-row flex items-center gap-1">
+      <button
+        type="button"
+        data-handle
+        {...drag.keyboard}
+        className="grid h-[46px] w-8 flex-none place-items-center rounded-md text-ink-soft transition-colors duration-150 hover:bg-ink/10 hover:text-ink"
+      >
+        <DotsSixVertical size={22} weight="bold" aria-hidden="true" />
+      </button>
+      <button type="button" role="radio" aria-checked={on} className={`sign ${on ? 'on' : ''}`} onClick={() => onChoose(road)}>
+        {on && <motion.span layoutId="road-fill" className="absolute inset-0 bg-ink" transition={glide} />}
+        <span className="relative flex items-center gap-2">
+          {ROAD_LABEL[road]}
+          {best && (
+            <motion.span layoutId="best-fit" className="text-xs font-semibold opacity-75" transition={glide}>
+              Best fit
+            </motion.span>
+          )}
+        </span>
+        <span className="relative text-sm opacity-80">
+          <Score value={score} />
+        </span>
+      </button>
+    </div>
+  )
+}
+
 export function RoadPanel({ roads, chosen, onChoose }: Props) {
   const reduce = useReducedMotion()
   const best = roads[0]?.road
@@ -36,34 +79,18 @@ export function RoadPanel({ roads, chosen, onChoose }: Props) {
 
   return (
     <div>
-      <div className="space-y-1.5" role="radiogroup" aria-label="Choose how to start">
-        {ROADS.map((road) => {
-          const score = roads.find((r) => r.road === road)?.score ?? 0
-          const on = road === chosen
-          return (
-            <button
-              key={road}
-              type="button"
-              role="radio"
-              aria-checked={on}
-              className={`sign ${on ? 'on' : ''}`}
-              onClick={() => onChoose(road)}
-            >
-              {on && <motion.span layoutId="road-fill" className="absolute inset-0 bg-ink" transition={glide} />}
-              <span className="relative flex items-center gap-2">
-                {ROAD_LABEL[road]}
-                {road === best && (
-                  <motion.span layoutId="best-fit" className="text-xs font-semibold opacity-75" transition={glide}>
-                    Best fit
-                  </motion.span>
-                )}
-              </span>
-              <span className="relative text-sm opacity-80">
-                <Score value={score} />
-              </span>
-            </button>
-          )
-        })}
+      <div className="space-y-1.5" role="radiogroup" aria-label="Preview a road">
+        {ROADS.map((road) => (
+          <RoadRow
+            key={road}
+            road={road}
+            score={roads.find((r) => r.road === road)?.score ?? 0}
+            on={road === chosen}
+            best={road === best}
+            glide={glide}
+            onChoose={onChoose}
+          />
+        ))}
       </div>
 
       <div className="mt-4 min-h-[170px]">
