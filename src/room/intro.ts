@@ -53,6 +53,25 @@ export function videoFrame(progress: number): number {
 // The door swings from the first crack to wide open between these two frames of the footage.
 const SWING_LAST_FRAME = 148
 
+// How many frames past the one on screen your scroll position must travel before the picture changes. Without it, a
+// slow or wobbling hand makes the picture flip between two frames; with it, the picture holds still until you mean it.
+export const HOLD_FRAMES = 0.62
+
+// Which frame to show: keep the current one while the scroll position is within HOLD_FRAMES of it, otherwise jump to
+// the nearest. `settled` snaps to the nearest frame unconditionally (used once the scroll has stopped).
+export function frameToShow(shown: number, position: number, settled = false): number {
+  const last = VIDEO_FRAMES - 1
+  const nearest = Math.min(last, Math.max(0, Math.round(position)))
+  if (settled || shown < 0 || Math.abs(position - shown) > HOLD_FRAMES) return nearest
+  return shown
+}
+
+// The scroll position that goes with a frame on screen, so the doorway and the room are drawn for the same moment
+// as the picture. Past the end of the footage there is no frame to match, so the real position is used.
+export function progressOfFrame(frame: number, progress: number): number {
+  return progress >= INTRO.videoEnd ? progress : (frame / (VIDEO_FRAMES - 1)) * INTRO.videoEnd
+}
+
 // How far the door itself has swung, 0 (shut) to 1 (wide open). The creak follows how fast this changes.
 export function doorSwing(progress: number): number {
   return clamp01((videoFrame(progress) - FIRST_DOOR_FRAME) / (SWING_LAST_FRAME - FIRST_DOOR_FRAME))

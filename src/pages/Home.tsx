@@ -10,7 +10,7 @@ import { RoomLight } from '../features/board/RoomLight'
 import { CARD } from '../features/dnd/types'
 import { useDraggable } from '../features/dnd/useDraggable'
 import { useTitle } from '../hooks/useTitle'
-import { enableSound } from '../lib/audio'
+import { enableSound, useAudio } from '../lib/audio'
 import { INTRO } from '../room/intro'
 import { useSettings } from '../store'
 
@@ -40,7 +40,7 @@ export default function Home() {
   const reduce = Boolean(reducedMotion) || skip
   const lastUser = useSettings((s) => s.lastUser)
   const setLastUser = useSettings((s) => s.setLastUser)
-  const sound = useSettings((s) => s.sound)
+  const sound = useAudio((s) => s.running)
   const setSound = useSettings((s) => s.setSound)
   const field = useRef<HTMLInputElement>(null)
   const [name, setName] = useState(lastUser ?? '')

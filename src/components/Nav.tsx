@@ -2,7 +2,7 @@ import { SpeakerHigh, SpeakerSlash } from '@phosphor-icons/react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
-import { disableSound, enableSound } from '../lib/audio'
+import { disableSound, enableSound, useAudio } from '../lib/audio'
 import { fmtTime } from '../lib/format'
 import { EASE_OUT } from '../lib/motion'
 import { useArchive, useRate, useSettings } from '../store'
@@ -17,7 +17,7 @@ export function Nav() {
   const home = pathname === '/'
   const lastUser = useSettings((s) => s.lastUser)
   const hasToken = useSettings((s) => Boolean(s.token))
-  const sound = useSettings((s) => s.sound)
+  const sound = useAudio((s) => s.running)
   const setSound = useSettings((s) => s.setSound)
   const archived = useArchive((s) => Object.keys(s.entries).length)
   const { remaining, resetAt } = useRate()

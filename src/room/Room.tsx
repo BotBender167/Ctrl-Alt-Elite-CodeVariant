@@ -1,8 +1,8 @@
-import { motion, useMotionValueEvent, useReducedMotion, useScroll, useSpring, useTransform } from 'motion/react'
+import { motion, useMotionValue, useMotionValueEvent, useReducedMotion, useScroll, useSpring, useTransform } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { setScene } from '../lib/audio'
-import { VIDEO_FPS, VIDEO_FRAMES } from './doorTrack'
-import { doorClip, doorOpen, INTRO_POSTER, introSource, ROOM_SRC, ROOM_SRCSET, videoFrame } from './intro'
+import { VIDEO_FPS } from './doorTrack'
+import { doorClip, doorOpen, frameToShow, INTRO_POSTER, introSource, progressOfFrame, ROOM_SRC, ROOM_SRCSET, videoFrame } from './intro'
 
 export type RoomMode = 'outside' | 'inside'
 
@@ -40,28 +40,50 @@ function RoomImage() {
 // The walk. Purpose: arrival. You walk up to the house yourself and the door swings open in the footage.
 // The room is drawn only inside the doorway, which follows the real door frame by frame (the witch who
 // stands there is hidden behind it), and as the camera pushes in the doorway widens until the room fills the
-// screen. One plain video, scrubbed by your scroll: every frame is a keyframe so seeking is instant, and a
-// spring smooths the wheel so the doorway glides even though the footage is 25 frames a second.
+// screen. One plain video, scrubbed by your scroll: every frame is a keyframe so seeking is instant.
+//
+// Steadiness: the footage is 25 frames a second, so a slow scroll crosses a frame boundary every few pixels. A hand
+// that wobbles there would flip the picture back and forth, so a frame stays on screen until you have moved a good
+// way past it (HOLD_FRAMES). When you stop, it settles on the nearest whole frame. The doorway and the room are
+// drawn for that same frame, so the picture and the cut-out never disagree.
+const SETTLE_MS = 140
+
 function Walk() {
   const video = useRef<HTMLVideoElement>(null)
-  const asked = useRef(-1)
+  const shown = useRef(-1)
+  const settle = useRef(0)
+  const drawn = useMotionValue(0)
   const [src] = useState(introSource)
   const { w, h } = useViewport()
   const { scrollYProgress } = useScroll()
   const smooth = useSpring(scrollYProgress, { stiffness: 100, damping: 26, mass: 0.5 })
-  const clipPath = useTransform(smooth, (v) => doorClip(v, w, h))
-  const zoom = useTransform(smooth, (v) => 0.62 + 0.38 * doorOpen(v))
+  const clipPath = useTransform(drawn, (v) => doorClip(v, w, h))
+  const zoom = useTransform(drawn, (v) => 0.62 + 0.38 * doorOpen(v))
+
+  function showFrame(frame: number): void {
+    const el = video.current
+    if (!el || !Number.isFinite(el.duration)) return
+    // aimed at the middle of the frame so rounding can never land on the one before
+    el.currentTime = Math.min((frame + 0.5) / VIDEO_FPS, el.duration - 0.001)
+  }
+
+  function update(progress: number, settled: boolean): void {
+    const frame = frameToShow(shown.current, videoFrame(progress), settled)
+    if (frame !== shown.current) {
+      shown.current = frame
+      showFrame(frame)
+    }
+    drawn.set(progressOfFrame(shown.current, progress))
+  }
 
   useMotionValueEvent(smooth, 'change', (v) => {
     setScene('walk', v)
-    const el = video.current
-    if (!el || !Number.isFinite(el.duration)) return
-    // the nearest frame, aimed at its middle so rounding can never land on the one before
-    const frame = Math.min(VIDEO_FRAMES - 1, Math.round(videoFrame(v)))
-    if (asked.current === frame) return
-    asked.current = frame
-    el.currentTime = Math.min((frame + 0.5) / VIDEO_FPS, el.duration - 0.001)
+    update(v, false)
+    window.clearTimeout(settle.current)
+    settle.current = window.setTimeout(() => update(smooth.get(), true), SETTLE_MS)
   })
+
+  useEffect(() => () => window.clearTimeout(settle.current), [])
 
   return (
     <>

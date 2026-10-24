@@ -1,3 +1,4 @@
+import { create } from 'zustand'
 import { doorOpen, doorSwing, INTRO } from '../room/intro'
 import { useSettings } from '../store'
 
@@ -29,6 +30,10 @@ interface Graph {
   flickerGain: GainNode
   noise: AudioBuffer
 }
+
+// True only while sound is really coming out. A saved "sound on" is not enough: browsers keep audio asleep until
+// the first click or key press, and the labels and the start button must not claim otherwise.
+export const useAudio = create<{ running: boolean }>()(() => ({ running: false }))
 
 let graph: Graph | null = null
 let starting: Promise<void> | null = null
@@ -159,12 +164,13 @@ function thud(level: number, from = 130, to = 45, seconds = 0.2): void {
   o.stop(t + seconds + 0.05)
 }
 
-// One slight sound for the door: a small crack as the latch lets go, then a short, quiet creak of the hinge.
+// One slight sound for the door: a small crack as the latch lets go, then a short creak of the hinge. Slight, but
+// clearly above the ambience, which would otherwise swallow it.
 function doorOpening(): void {
   if (!graph) return
   const { ctx, master } = graph
-  burst(0.07, 2600, 900, 0.07, 1.6)
-  thud(0.06, 140, 60, 0.16)
+  burst(0.09, 2600, 900, 0.24, 1.6)
+  thud(0.2, 140, 60, 0.18)
   const t = ctx.currentTime + 0.08
   const o = ctx.createOscillator()
   o.type = 'sawtooth'
@@ -182,8 +188,8 @@ function doorOpening(): void {
   f.frequency.linearRampToValueAtTime(980, t + 1.7)
   const g = ctx.createGain()
   g.gain.setValueAtTime(0, t)
-  g.gain.linearRampToValueAtTime(0.06, t + 0.3)
-  g.gain.linearRampToValueAtTime(0.04, t + 1.1)
+  g.gain.linearRampToValueAtTime(0.17, t + 0.3)
+  g.gain.linearRampToValueAtTime(0.11, t + 1.1)
   g.gain.exponentialRampToValueAtTime(0.001, t + 1.9)
   o.connect(f).connect(g).connect(master)
   o.start(t)
@@ -231,6 +237,7 @@ async function start(): Promise<void> {
   if (graph) {
     await graph.ctx.resume()
     ramp(graph.master.gain, graph.ctx, MASTER_LEVEL, 0.4)
+    useAudio.setState({ running: true })
     return
   }
   const ctx = new AudioContext()
@@ -247,6 +254,7 @@ async function start(): Promise<void> {
   }
   await ctx.resume()
   ramp(graph.master.gain, ctx, MASTER_LEVEL, 0.6)
+  useAudio.setState({ running: true })
 }
 
 export function enableSound(): Promise<void> {
@@ -257,6 +265,7 @@ export function enableSound(): Promise<void> {
 }
 
 export function disableSound(): void {
+  useAudio.setState({ running: false })
   if (!graph) return
   ramp(graph.master.gain, graph.ctx, 0, 0.1)
   const { ctx } = graph

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DOOR_TRACK } from './doorTrack'
-import { doorClip, doorOpen, INTRO, videoFrame } from './intro'
+import { doorClip, doorOpen, frameToShow, HOLD_FRAMES, INTRO, progressOfFrame, videoFrame } from './intro'
 
 const insets = (clip: string): number[] => (clip.match(/-?\d+(\.\d+)?/g) ?? []).map(Number)
 
@@ -71,5 +71,57 @@ describe('doorClip', () => {
       const [, right, , left] = insets(doorClip(INTRO.doorStart + 0.01, w, h))
       expect(Math.abs((left ?? 0) + (w - (right ?? 0) - (left ?? 0)) / 2 - w / 2)).toBeLessThan(w * 0.01 + 1)
     }
+  })
+})
+
+describe('frameToShow', () => {
+  it('starts on the nearest frame', () => {
+    expect(frameToShow(-1, 37.4)).toBe(37)
+    expect(frameToShow(-1, 37.6)).toBe(38)
+  })
+
+  it('holds the frame while your hand wobbles around a boundary', () => {
+    let shown = frameToShow(-1, 40.1)
+    const wobble = [40.4, 40.55, 40.45, 40.6, 40.5, 40.35, 40.58, 40.42]
+    for (const p of wobble) {
+      const next = frameToShow(shown, p)
+      expect(next).toBe(shown)
+      shown = next
+    }
+  })
+
+  it('moves on once you have clearly gone past it', () => {
+    expect(frameToShow(40, 40 + HOLD_FRAMES + 0.05)).toBe(41)
+    expect(frameToShow(40, 40 - HOLD_FRAMES - 0.05)).toBe(39)
+  })
+
+  it('jumps straight to the right frame after a big move', () => {
+    expect(frameToShow(10, 120.2)).toBe(120)
+  })
+
+  it('settles on the nearest whole frame when you stop', () => {
+    expect(frameToShow(40, 40.6, true)).toBe(41)
+    expect(frameToShow(40, 40.3, true)).toBe(40)
+  })
+
+  it('never goes outside the footage', () => {
+    expect(frameToShow(-1, -5)).toBe(0)
+    expect(frameToShow(-1, 9999)).toBe(175)
+  })
+
+  it('follows a steady slow scroll without ever lagging more than the hold distance', () => {
+    let shown = -1
+    for (let p = 0; p <= 175; p += 0.07) {
+      shown = frameToShow(shown, p)
+      expect(Math.abs(p - shown)).toBeLessThanOrEqual(HOLD_FRAMES + 1e-9)
+    }
+  })
+})
+
+describe('progressOfFrame', () => {
+  it('draws the doorway for the frame on screen, and for the real position once the footage has ended', () => {
+    expect(progressOfFrame(0, 0.01)).toBe(0)
+    expect(progressOfFrame(175, 0.79)).toBeCloseTo(INTRO.videoEnd, 6)
+    expect(progressOfFrame(175, 0.9)).toBe(0.9)
   })
 })
