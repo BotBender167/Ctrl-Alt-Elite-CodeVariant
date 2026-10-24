@@ -1,4 +1,3 @@
-import { Key } from '@phosphor-icons/react'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useSettings } from '../store'
@@ -18,8 +17,8 @@ export function TokenForm({ onDone }: { onDone?: () => void }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <label htmlFor="gh-token" className="flex items-center gap-2 text-sm font-medium">
-        <Key size={18} weight="duotone" className="text-accent" /> GitHub token (optional)
+      <label htmlFor="gh-token" className="block text-sm font-medium">
+        GitHub token (optional)
       </label>
       <input
         id="gh-token"
@@ -27,12 +26,12 @@ export function TokenForm({ onDone }: { onDone?: () => void }) {
         autoComplete="off"
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder={token ? 'A token is saved in this browser' : 'ghp_... or github_pat_...'}
+        placeholder={token ? 'A token is saved in this browser' : 'github_pat_...'}
         className="field !h-11 !text-base"
       />
       <p className="text-xs leading-relaxed text-mist">
         A token with no permissions lifts the limit from 60 to 5,000 requests an hour. It stays in this browser and is sent only to
-        api.github.com.{' '}
+        GitHub.{' '}
         <a
           className="text-accent underline underline-offset-2"
           href="https://github.com/settings/personal-access-tokens/new"

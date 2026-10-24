@@ -18,7 +18,7 @@ export interface ArchiveEntry {
 
 interface ArchiveState {
   entries: Record<string, ArchiveEntry>
-  save: (entry: ArchiveEntry) => void
+  save: (entry: Omit<ArchiveEntry, 'savedAt'>) => void
   remove: (key: string) => void
 }
 
@@ -26,7 +26,8 @@ export const useArchive = create<ArchiveState>()(
   persist(
     (set) => ({
       entries: {},
-      save: (entry) => set((s) => ({ entries: { ...s.entries, [entry.key]: entry } })),
+      save: (entry) =>
+        set((s) => ({ entries: { ...s.entries, [entry.key]: { ...entry, savedAt: new Date().toISOString() } } })),
       remove: (key) =>
         set((s) => ({
           entries: Object.fromEntries(Object.entries(s.entries).filter(([k]) => k !== key)),

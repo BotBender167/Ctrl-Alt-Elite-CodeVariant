@@ -118,12 +118,9 @@ a {
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  border-radius: 999px;
-  padding: 3px 12px;
   font-size: 13px;
   font-weight: 500;
-  border: 1.5px solid currentColor;
+  letter-spacing: 0.02em;
   white-space: nowrap;
 }
 .chip.alive {
@@ -151,26 +148,22 @@ a {
   border: 0;
   cursor: pointer;
   color: var(--color-cream);
-  background: rgb(242 235 216 / 0.12);
+  background: rgb(242 235 216 / 0.1);
   clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 50%, calc(100% - 22px) 100%, 0 100%);
   font-size: 17px;
   font-weight: 500;
   text-align: left;
   transition:
     background-color 180ms ease,
-    transform 180ms var(--ease-out-strong);
+    color 180ms ease;
 }
 .sign.on {
-  background: var(--color-accent);
   color: #1a120b;
   font-weight: 600;
 }
-.sign:active {
-  transform: scale(0.985);
-}
 @media (hover: hover) and (pointer: fine) {
   .sign:not(.on):hover {
-    background: rgb(242 235 216 / 0.22);
+    background: rgb(242 235 216 / 0.2);
   }
 }
 

@@ -1,5 +1,4 @@
 import { motion, useReducedMotion } from 'motion/react'
-import { useState } from 'react'
 
 export type WorldMode = 'hero' | 'app'
 
@@ -33,7 +32,6 @@ function Glow({ x, y, size, color }: { x: number; y: number; size: number; color
 
 export function World({ mode }: { mode: WorldMode }) {
   const reduce = useReducedMotion()
-  const [loaded, setLoaded] = useState(false)
   const timing = reduce ? { duration: 0.2 } : { duration: 0.9, ease: CAMERA_EASE }
 
   return (
@@ -59,11 +57,8 @@ export function World({ mode }: { mode: WorldMode }) {
             alt=""
             width={IMG_W}
             height={IMG_H}
-            decoding="async"
             fetchPriority="high"
-            onLoad={() => setLoaded(true)}
-            className="h-full w-full select-none object-cover transition-opacity duration-700"
-            style={{ opacity: loaded ? 1 : 0 }}
+            className="h-full w-full select-none object-cover"
             draggable={false}
           />
           <Glow x={33.8} y={64.5} size={14} color="rgb(246 178 90 / 0.55)" />
