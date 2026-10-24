@@ -1,11 +1,12 @@
 {
-  "name": "tmpvite",
+  "name": "unfinished-business",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "test": "vitest run",
     "lint": "oxlint",
     "preview": "vite preview"
   },
