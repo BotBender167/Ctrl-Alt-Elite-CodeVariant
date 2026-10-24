@@ -1,11 +1,12 @@
 import { AnimatePresence } from 'motion/react'
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { Link, Route, Routes, useLocation } from 'react-router-dom'
 import { Nav } from './components/Nav'
 import { Page } from './components/Page'
 import { ToastHost } from './components/Toast'
 import { DndLive } from './features/dnd/DropZone'
 import { useTitle } from './hooks/useTitle'
+import { armSoundOnGesture } from './lib/audio'
 import Board from './pages/Board'
 import Home from './pages/Home'
 import { Room } from './room/Room'
@@ -34,6 +35,8 @@ function routeKey(pathname: string): string {
 export default function App() {
   const location = useLocation()
   const outside = location.pathname === '/'
+
+  useEffect(() => armSoundOnGesture(), [])
 
   return (
     <div className="relative min-h-dvh">

@@ -14,7 +14,7 @@ import { Hub } from '../features/board/Hub'
 import { SLOT_COUNT, placeItems } from '../features/board/layout'
 import { cardOf, STATUS_ICON } from '../features/board/cards'
 import { Grip, Note } from '../features/board/Note'
-import { NoteTip } from '../features/board/NoteTip'
+import { Inspector } from '../features/board/Inspector'
 import { RoomLight } from '../features/board/RoomLight'
 import { Strings } from '../features/board/Strings'
 import type { PlacedLink } from '../features/board/Strings'
@@ -101,7 +101,6 @@ export default function Board() {
 
   const litIndex = pageItems.findIndex((i) => i.repo.id === lit)
   const litItem = litIndex >= 0 ? pageItems[litIndex] : undefined
-  const litSlot = litIndex >= 0 ? placed.slots[litIndex] : undefined
 
   function changeFilter(f: BoardFilter): void {
     setFilter(f)
@@ -165,9 +164,6 @@ export default function Board() {
                     />
                   )
                 })}
-                <AnimatePresence>
-                  {litItem && litSlot && !openRepo && !holding && <NoteTip key={litItem.repo.id} repo={litItem.repo} cls={litItem.cls} slot={litSlot} />}
-                </AnimatePresence>
                 {!hintSeen && !openRepo && (
                   <span
                     className="sticky absolute px-[1cqw] py-[0.5cqw] text-[clamp(13px,1.9cqw,30px)]"
@@ -183,6 +179,10 @@ export default function Board() {
             <RoomLight />
           </div>
         </div>
+
+        <AnimatePresence>
+          {litItem && !openRepo && !holding && <Inspector key={litItem.repo.id} repo={litItem.repo} cls={litItem.cls} />}
+        </AnimatePresence>
 
         {/* Phones and narrow windows: the same notes as a simple pinned list, with the same zones below. */}
         <div className="h-full overflow-y-auto px-4 pb-44 pt-28 min-[900px]:hidden">

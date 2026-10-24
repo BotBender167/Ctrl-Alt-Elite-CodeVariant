@@ -73,6 +73,8 @@ interface SettingsState {
   token: string | null
   lastUser: string | null
   hintSeen: boolean
+  sound: boolean
+  setSound: (on: boolean) => void
   setToken: (token: string | null) => void
   setLastUser: (user: string) => void
   dismissHint: () => void
@@ -84,6 +86,8 @@ export const useSettings = create<SettingsState>()(
       token: null,
       lastUser: null,
       hintSeen: false,
+      sound: false,
+      setSound: (sound) => set({ sound }),
       setToken: (token) => set({ token }),
       setLastUser: (lastUser) => set({ lastUser }),
       dismissHint: () => set({ hintSeen: true }),

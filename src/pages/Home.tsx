@@ -1,6 +1,7 @@
 import { motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from 'motion/react'
 import type { MotionValue } from 'motion/react'
-import { useState } from 'react'
+import { SpeakerHigh } from '@phosphor-icons/react'
+import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Screen } from '../components/Page'
@@ -9,6 +10,7 @@ import { RoomLight } from '../features/board/RoomLight'
 import { CARD } from '../features/dnd/types'
 import { useDraggable } from '../features/dnd/useDraggable'
 import { useTitle } from '../hooks/useTitle'
+import { enableSound } from '../lib/audio'
 import { INTRO } from '../room/intro'
 import { useSettings } from '../store'
 
@@ -35,14 +37,25 @@ export default function Home() {
   const navigate = useNavigate()
   const lastUser = useSettings((s) => s.lastUser)
   const setLastUser = useSettings((s) => s.setLastUser)
+  const sound = useSettings((s) => s.sound)
+  const setSound = useSettings((s) => s.setSound)
+  const field = useRef<HTMLInputElement>(null)
   const [name, setName] = useState(lastUser ?? '')
   const [error, setError] = useState('')
   const [scanning, setScanning] = useState(false)
   const [ready, setReady] = useState(Boolean(reduce))
   const { scrollYProgress } = useScroll()
 
+  // A reload keeps the scroll position, so read where we are on arrival as well as when it changes.
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      const max = document.documentElement.scrollHeight - window.innerHeight
+      setReady(Boolean(reduce) || (max > 0 && window.scrollY / max >= INTRO.readyAt))
+    })
+    return () => cancelAnimationFrame(id)
+  }, [reduce])
   useMotionValueEvent(scrollYProgress, 'change', (v) => setReady(Boolean(reduce) || v >= INTRO.readyAt))
-  const roomOpacity = useTransform(scrollYProgress, [INTRO.fadeFrom, INTRO.readyAt], [0, 1])
+  const roomOpacity = useTransform(scrollYProgress, [INTRO.doorEnd - 0.04, INTRO.readyAt], [0, 1])
   const hintOpacity = useTransform(scrollYProgress, [0, 0.04], [1, 0])
   const barHeight = useTransform(scrollYProgress, (v) => `${v * 100}%`)
 
@@ -68,7 +81,7 @@ export default function Home() {
 
       {!reduce && (
         <>
-          <Caption progress={scrollYProgress} at={[0, 0.1, 0.17]} className="top-[11vh]">
+          <Caption progress={scrollYProgress} at={[0, 0.07, 0.14]} className="top-[11vh]">
             <h1 className="text-[clamp(44px,8vw,112px)] uppercase leading-[0.98] tracking-tight text-cream">
               Unfinished
               <br />
@@ -76,10 +89,10 @@ export default function Home() {
             </h1>
             <p className="mt-3 font-hand text-[clamp(24px,3.2vw,46px)] text-cream">Everyone has one.</p>
           </Caption>
-          <Caption progress={scrollYProgress} at={[0.28, 0.34, 0.52, 0.58]} className="bottom-[16vh]">
+          <Caption progress={scrollYProgress} at={[0.2, 0.27, 0.42, 0.49]} className="bottom-[16vh]">
             <p className="font-hand text-[clamp(26px,3.4vw,50px)] text-cream">Somewhere, a project is still waiting for you.</p>
           </Caption>
-          <Caption progress={scrollYProgress} at={[0.6, 0.66, 0.8, 0.86]} className="bottom-[16vh]">
+          <Caption progress={scrollYProgress} at={[0.5, 0.56, 0.64, 0.71]} className="bottom-[16vh]">
             <p className="font-hand text-[clamp(26px,3.4vw,50px)] text-cream">Let us go in and find it.</p>
           </Caption>
           <motion.div
@@ -88,6 +101,18 @@ export default function Home() {
           >
             Scroll to walk in
             <span className="h-10 w-px bg-gradient-to-b from-cream to-transparent" aria-hidden="true" />
+            {!sound && (
+              <button
+                type="button"
+                className="pointer-events-auto mt-1 flex items-center gap-2 rounded-full bg-room/70 px-4 py-2 text-[13px] normal-case tracking-normal text-cream ring-1 ring-cream/25 backdrop-blur-sm transition-colors duration-150 hover:bg-room/90"
+                onClick={() => {
+                  setSound(true)
+                  void enableSound()
+                }}
+              >
+                <SpeakerHigh size={16} weight="bold" aria-hidden="true" /> Best with sound. Turn it on
+              </button>
+            )}
           </motion.div>
           <div className="pointer-events-none fixed right-5 top-1/2 h-28 w-0.5 -translate-y-1/2 bg-cream/20" aria-hidden="true">
             <motion.div className="w-full bg-accent" style={{ height: barHeight }} />
@@ -110,12 +135,16 @@ export default function Home() {
               {...drag.keyboard}
               role="group"
               className="idcard drag"
+              onClick={(e) => {
+                if (!(e.target as HTMLElement).closest('button, a')) field.current?.focus()
+              }}
             >
-              <small>Investigator ID</small>
+              <small>Investigator ID, click to type your username</small>
               <label htmlFor="username" className="sr-only">
                 GitHub username
               </label>
               <input
+                ref={field}
                 id="username"
                 name="username"
                 value={name}
@@ -123,7 +152,7 @@ export default function Home() {
                   setName(e.target.value)
                   if (error) setError('')
                 }}
-                placeholder="your GitHub username"
+                placeholder="e.g. octocat"
                 autoComplete="off"
                 autoCapitalize="none"
                 spellCheck={false}
@@ -131,7 +160,7 @@ export default function Home() {
                 aria-describedby={error ? 'username-error' : undefined}
               />
               <span className="idcard-go">drag me onto the circle</span>
-              <span className="idcard-try" data-nodrag>
+              <span className="idcard-try">
                 Try{' '}
                 {DEMOS.map((d, i) => (
                   <span key={d}>

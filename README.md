@@ -26,7 +26,7 @@ It works without a mouse. Tab to a card, press **Enter** to pick it up, the **ar
 
 ## How it works for a first-time visitor
 
-1. **The walk.** The page opens on a haunted house. Nothing plays by itself: you scroll, and the video moves forward (and back) with you, then dissolves into an investigation room.
+1. **The walk.** The page opens on a haunted house. Nothing plays by itself: you scroll, and the video moves forward (and back) with you. At the end the door opens and the room appears through it, widening until it fills the screen. Turn the sound on (top right, or the button on the first screen) for a low ambience that builds as you approach, a door creak, and a lamp hum that stutters with the light.
 2. **The ID card.** Type a GitHub username on the card and drag it onto the empty circle in the middle of the board. That is the scan.
 3. **The board.** Your profile sits in the middle and every project hangs off it by a red string, flying out of the circle as the board lands. Quiet projects that need a verdict sit to the left, dormant ones to the right, finished and alive ones at the edges, and inside each group the newest is nearest you. The pinning is a little messy on purpose. Point at a note to see what we know and which string it pulls. The lamp flickers the whole time.
 4. **The case file.** Drag a note onto **Examine** and it opens like a folder. Four steps, one question each:
@@ -74,11 +74,11 @@ Every animation answers one question, and stays under 500 ms. The two ambient gl
 | Where | What it does | Why it exists |
 | --- | --- | --- |
 | The walk | Scroll scrubs the video, a spring smooths the wheel | You walk up to the house yourself, nothing autoplays |
-| Video to room | The last stretch of scroll dissolves into the room | Feels like walking through a door |
+| The door | The room is drawn through a slit where the door is, and the slit widens to the whole screen | You step through the door into the investigation |
 | Lamp | Two light layers flicker out of step with each other | Keeps the board feeling alive while you read it |
 | Notes landing | Each note flies out of your profile and pins in, one after another | Shows that everything on the board is yours, and in what order |
 | Red strings | Draw from your profile to each note as it lands | Connection: every project hangs off you |
-| Pointing at a note | Its string pulls tight, the rest dim, a card appears | Shows what we know before you commit to opening it |
+| Pointing at a note | Its string pulls tight, the rest dim, and its details appear in a fixed panel beside the zones | Shows what we know before you commit, without covering anything on the board |
 | Dragging | The card lifts, matching zones light up, the one under it grows | Tells you where it can go and where it will land |
 | A drop | The card flies into the zone; a refused drop snaps back | Confirms it worked, or says it did not |
 | Note to case file | The paper glides from the note into the folder | Keeps your place: this is the project you clicked |
@@ -112,7 +112,7 @@ src/features/board/       profile hub, notes, red strings, layout, dock
 src/features/case/        the four-step case file, compare tray, verdict stamp
 src/pages/                Home, Board, Archive
 src/components/           shared UI
-public/                   intro video (1080p and 4K), room image
+public/                   intro video (1080p and 1440p), room image (2560 and 4K), ambience loop
 ```
 
 ## Known limits
@@ -120,4 +120,4 @@ public/                   intro video (1080p and 4K), room image
 - Commit history shows effort, not intent, so the cause of death is a suggestion.
 - Similar repositories are evidence, not proof that an idea was taken.
 - Public repositories only. Without a token GitHub allows 60 requests an hour per network.
-- The intro video is a short third-party clip, trimmed to its first 4.9 seconds, with everything after the door opens removed. It is re-encoded with a keyframe on every frame so scrolling can scrub it, and upscaled with Lanczos to 1080p and 4K from a 720p source, so the extra resolution is smoothness, not new detail. Its licence is the open item to settle before this is more than a hackathon entry. The room artwork is supplied by the team.
+- The intro video is a short third-party clip, trimmed to its first 4.9 seconds, with everything after the door opens removed. It is the team's 1440p upscale, re-encoded with a keyframe on every frame so scrolling can scrub it (1080p and 1440p versions are served by screen size). The ambience loop is its own soundtrack, looped seamlessly; the creak, wind, hum and card sounds are synthesised in the browser with Web Audio. Its licence is the open item to settle before this is more than a hackathon entry. The room artwork is supplied by the team; the 2560 and 4K renders keep its frame, lamp and desk and re-synthesise the cork grain at full resolution, so the lamp and frame are only as sharp as the original painting.

@@ -1,6 +1,8 @@
+import { SpeakerHigh, SpeakerSlash } from '@phosphor-icons/react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
+import { disableSound, enableSound } from '../lib/audio'
 import { fmtTime } from '../lib/format'
 import { EASE_OUT } from '../lib/motion'
 import { useArchive, useRate, useSettings } from '../store'
@@ -15,6 +17,8 @@ export function Nav() {
   const home = pathname === '/'
   const lastUser = useSettings((s) => s.lastUser)
   const hasToken = useSettings((s) => Boolean(s.token))
+  const sound = useSettings((s) => s.sound)
+  const setSound = useSettings((s) => s.setSound)
   const archived = useArchive((s) => Object.keys(s.entries).length)
   const { remaining, resetAt } = useRate()
   const [open, setOpen] = useState(false)
@@ -43,6 +47,20 @@ export function Nav() {
           <NavLink to="/archive" className={({ isActive }) => `${link} ${isActive ? active : ''}`}>
             Archive{archived > 0 && <span className="ml-1.5 text-accent">{archived}</span>}
           </NavLink>
+          <button
+            type="button"
+            aria-pressed={sound}
+            aria-label={sound ? 'Turn the sound off' : 'Turn the sound on'}
+            className={`${link} flex items-center gap-1.5`}
+            onClick={() => {
+              setSound(!sound)
+              if (sound) disableSound()
+              else void enableSound()
+            }}
+          >
+            {sound ? <SpeakerHigh size={18} weight="bold" aria-hidden="true" /> : <SpeakerSlash size={18} weight="bold" aria-hidden="true" />}
+            <span className="hidden sm:inline">Sound {sound ? 'on' : 'off'}</span>
+          </button>
           {(lowQuota || hasToken) && (
             <button
               type="button"

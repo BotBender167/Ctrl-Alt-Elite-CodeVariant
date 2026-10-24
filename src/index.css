@@ -645,3 +645,50 @@ a {
     text-align: center;
   }
 }
+
+/* ---------- the inspector: what we know about the note you are pointing at ---------- */
+.inspector {
+  display: none;
+  position: fixed;
+  z-index: 20;
+  left: 16px;
+  bottom: 16px;
+  width: min(320px, calc((100vw - 800px) / 2 - 8px));
+  min-width: 250px;
+  padding: 14px 16px;
+  pointer-events: none;
+}
+@media (min-width: 900px) {
+  .inspector {
+    display: block;
+  }
+}
+@media (min-width: 900px) and (max-width: 1299px) {
+  .inspector {
+    left: 50%;
+    translate: -50% 0;
+    bottom: 160px;
+    width: min(340px, 92vw);
+  }
+}
+
+/* ---------- the username field reads as a field you can type in ---------- */
+.idcard input {
+  width: 100%;
+  margin-top: 0.5cqw;
+  padding: 0.5cqw 0.7cqw;
+  border: 1px solid rgb(28 23 16 / 0.35);
+  border-bottom: 1px solid rgb(28 23 16 / 0.35);
+  border-radius: 0.3cqw;
+  background: rgb(255 255 255 / 0.55);
+  cursor: text;
+}
+.idcard input:focus-visible {
+  outline: 2px solid var(--color-string);
+  outline-offset: 1px;
+  border-color: transparent;
+  background: #fff;
+}
+.idcard small {
+  line-height: 1.3;
+}

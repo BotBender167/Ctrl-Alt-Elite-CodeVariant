@@ -47,10 +47,10 @@ export function Note({ repo, cls, slot, index, open, faded, kept, onLight }: Pro
     >
       {!open && (
         <motion.div
-          className="absolute inset-0"
-          style={{ rotate: `${slot.rot}deg` }}
+          className="absolute inset-0 transition-[filter] duration-200"
+          style={{ rotate: `${slot.rot}deg`, filter: faded ? 'brightness(0.68) saturate(0.8)' : 'none' }}
           initial={{ opacity: 0, transform: reduce ? 'none' : `translate(${dx}cqw, ${dy}cqw) scale(0.25)` }}
-          animate={{ opacity: faded ? 0.6 : 1, transform: 'translate(0cqw, 0cqw) scale(1)' }}
+          animate={{ opacity: 1, transform: 'translate(0cqw, 0cqw) scale(1)' }}
           transition={{
             opacity: { duration: 0.25 },
             transform: { duration: 0.7, ease: EASE_OUT, delay: reduce ? 0 : 0.35 + index * 0.08 },

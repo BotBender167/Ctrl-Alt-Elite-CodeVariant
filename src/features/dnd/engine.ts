@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { sfx } from '../../lib/audio'
 
 // The Canvas Protocol engine. Every primary action in the app is "drop a card on a zone", and this file is
 // the one place that knows how: pointer dragging, a keyboard route to the same result, and what to announce.
@@ -48,6 +49,13 @@ export function announce(message: string): void {
 }
 
 const reduced = (): boolean => window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+// Each zone has a sound that fits what it does: paper tearing, a stamp coming down, a soft thud.
+function soundFor(zoneId: string): void {
+  if (zoneId === 'shred') sfx.tear()
+  else if (zoneId === 'verdict' || zoneId === 'hub') sfx.stamp()
+  else sfx.drop()
+}
 
 function acceptingZones(type: string): ZoneReg[] {
   return [...zones.values()]
@@ -113,6 +121,7 @@ export function startPointerDrag(node: HTMLElement, event: PointerEvent | React.
       ghost = makeGhost(item, rect)
       item.dataset.lifted = 'true'
       arm(spec.type)
+      sfx.pickup()
       announce(`Dragging ${spec.label}.`)
     }
     ghost.style.translate = offset(ev.clientX, ev.clientY)
@@ -136,9 +145,11 @@ export function startPointerDrag(node: HTMLElement, event: PointerEvent | React.
     const zone = ev.type === 'pointerup' ? zoneAt(ev.clientX, ev.clientY, spec.type) : undefined
     if (zone && zone.onDrop(spec.payload, spec.type) !== false) {
       flyInto(flying, zone.el, rect, startX, startY, ev, cleanup)
+      soundFor(zone.id)
       announce(`${spec.label} dropped on ${zone.label}.`)
     } else {
       snapBack(flying, cleanup)
+      sfx.refuse()
       if (zone) announce(`${zone.label} did not accept ${spec.label}.`)
     }
   }
@@ -214,6 +225,7 @@ export function pickUp(node: HTMLElement, spec: DragSpec): void {
   held = { node: liftTarget(node), spec, zones: targets, index: -1 }
   held.node.dataset.lifted = 'true'
   arm(spec.type)
+  sfx.pickup()
   announce(
     `Picked up ${spec.label}. Use the arrow keys to choose a zone: ${targets.map((z) => z.label).join(', ')}. Press Enter to drop, Escape to cancel.`,
   )
@@ -253,8 +265,13 @@ export function onGlobalKey(e: KeyboardEvent): void {
     const h = release()
     const zone = h?.zones[h.index]
     if (!h || !zone) return
-    if (zone.onDrop(h.spec.payload, h.spec.type) === false) announce(`${zone.label} did not accept ${h.spec.label}.`)
-    else announce(`${h.spec.label} dropped on ${zone.label}.`)
+    if (zone.onDrop(h.spec.payload, h.spec.type) === false) {
+      sfx.refuse()
+      announce(`${zone.label} did not accept ${h.spec.label}.`)
+    } else {
+      soundFor(zone.id)
+      announce(`${h.spec.label} dropped on ${zone.label}.`)
+    }
     if (h.node.isConnected) h.node.focus({ preventScroll: true })
   }
 }
