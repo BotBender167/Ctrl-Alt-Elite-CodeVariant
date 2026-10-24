@@ -666,3 +666,26 @@ a {
     0 0.2cqw 0.5cqw rgb(0 0 0 / 0.4),
     0 1.6cqw 3cqw rgb(0 0 0 / 0.5);
 }
+
+/* ---------- small phones: the four zones stack their icon over a short label so none is cut off ---------- */
+@media (max-width: 639px) {
+  .action-zone {
+    flex-direction: column;
+    gap: 4px;
+    min-height: 68px;
+    padding: 8px 4px;
+    font-size: 12px;
+  }
+  .action-zone .zone-icon {
+    width: 30px;
+    height: 30px;
+  }
+  .action-zone .zone-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+  .action-zone .zone-text {
+    text-align: center;
+    line-height: 1.1;
+  }
+}

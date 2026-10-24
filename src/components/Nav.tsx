@@ -34,11 +34,14 @@ export function Nav() {
           <span />
         ) : (
           <Link to="/" className="font-display text-lg text-cream" aria-label="Unfinished Business, back to the start">
-            Unfinished Business
+            <span className="hidden whitespace-nowrap sm:inline">Unfinished Business</span>
+            <span className="sm:hidden" aria-hidden="true">
+              UB
+            </span>
           </Link>
         )}
 
-        <nav className="relative flex items-center gap-6" aria-label="Main">
+        <nav className="relative flex items-center gap-3 sm:gap-6" aria-label="Main">
           {lastUser && !pathname.startsWith('/u/') && (
             <NavLink to={`/u/${lastUser}`} className={({ isActive }) => `${link} ${isActive ? active : ''}`}>
               My board

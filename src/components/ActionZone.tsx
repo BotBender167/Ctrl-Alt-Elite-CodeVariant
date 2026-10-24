@@ -18,7 +18,7 @@ export function ActionZone({ id, accepts, title, sub, icon, onDrop, count }: Pro
       <span className="zone-icon" aria-hidden="true">
         {icon}
       </span>
-      <span className="min-w-0 text-left">
+      <span className="zone-text min-w-0 text-left">
         <span className="block font-semibold leading-tight">{title}</span>
         <span className="hidden text-[13px] leading-tight text-mist sm:block">{sub}</span>
       </span>
