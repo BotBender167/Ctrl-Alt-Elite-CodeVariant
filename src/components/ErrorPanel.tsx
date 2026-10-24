@@ -1,7 +1,8 @@
-import { GhError } from '../lib/github'
 import { fmtTime } from '../lib/format'
+import { GhError } from '../lib/github'
 import { TokenForm } from './TokenForm'
 
+// An error note pinned on paper, readable on both the dark room and the case file.
 export function ErrorPanel({ error, subject, onRetry }: { error: unknown; subject: string; onRetry?: () => void }) {
   const kind = error instanceof GhError ? error.kind : 'other'
   const resetAt = error instanceof GhError ? error.resetAt : null
@@ -21,14 +22,14 @@ export function ErrorPanel({ error, subject, onRetry }: { error: unknown; subjec
   }
 
   return (
-    <div className="panel mx-auto max-w-xl space-y-4 p-6" role="alert">
+    <div className="paper mx-auto max-w-xl space-y-4 p-6" role="alert">
       <div>
-        <h2 className="text-[40px]">{title}</h2>
-        <p className="mt-2 text-mist">{body}</p>
+        <h2 className="text-2xl">{title}</h2>
+        <p className="mt-2 text-ink-soft">{body}</p>
       </div>
       {kind === 'rate_limited' && <TokenForm />}
       {onRetry && (
-        <button type="button" className="btn ghost small" onClick={onRetry}>
+        <button type="button" className="btn line small" onClick={onRetry}>
           Try again
         </button>
       )}

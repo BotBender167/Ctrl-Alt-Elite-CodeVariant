@@ -1,6 +1,7 @@
 import { STATUS_LABEL } from '../config/rules'
 import type { Status } from '../config/rules'
 
-export function StatusChip({ status }: { status: Status }) {
-  return <span className={`chip ${status}`}>{STATUS_LABEL[status]}</span>
+// A rubber stamp on paper. The word is always printed, so status never depends on colour alone.
+export function Stamp({ status }: { status: Status }) {
+  return <span className={`stamp ${status}`}>{STATUS_LABEL[status]}</span>
 }

@@ -1,12 +1,12 @@
 import { animate, AnimatePresence, motion, useMotionValue, useReducedMotion, useTransform } from 'motion/react'
 import { useEffect } from 'react'
-import { ROAD_HELP, ROAD_LABEL, ROADS } from '../config/rules'
+import { ROAD_FIRST_STEP, ROAD_HELP, ROAD_LABEL, ROADS } from '../config/rules'
 import type { Road } from '../config/rules'
-import type { RoadScore } from '../lib/rules'
 import { EASE_OUT } from '../lib/motion'
+import type { RoadScore } from '../lib/rules'
 
-// Scores tick to their new value. Purpose: state change. When the world check finishes, the verdict visibly
-// shifts instead of silently swapping numbers.
+// Scores tick to their new value. Purpose: state change. When the search finishes or you pick a project to
+// compare, the verdict visibly shifts instead of silently swapping numbers.
 function Score({ value }: { value: number }) {
   const reduce = useReducedMotion()
   const mv = useMotionValue(value)
@@ -36,7 +36,7 @@ export function RoadPanel({ roads, chosen, onChoose }: Props) {
 
   return (
     <div>
-      <div className="space-y-1.5" role="radiogroup" aria-label="Choose your road">
+      <div className="space-y-1.5" role="radiogroup" aria-label="Choose how to start">
         {ROADS.map((road) => {
           const score = roads.find((r) => r.road === road)?.score ?? 0
           const on = road === chosen
@@ -49,7 +49,7 @@ export function RoadPanel({ roads, chosen, onChoose }: Props) {
               className={`sign ${on ? 'on' : ''}`}
               onClick={() => onChoose(road)}
             >
-              {on && <motion.span layoutId="road-fill" className="absolute inset-0 bg-accent" transition={glide} />}
+              {on && <motion.span layoutId="road-fill" className="absolute inset-0 bg-ink" transition={glide} />}
               <span className="relative flex items-center gap-2">
                 {ROAD_LABEL[road]}
                 {road === best && (
@@ -66,7 +66,7 @@ export function RoadPanel({ roads, chosen, onChoose }: Props) {
         })}
       </div>
 
-      <div className="mt-4 min-h-[112px]">
+      <div className="mt-4 min-h-[170px]">
         <AnimatePresence mode="wait" initial={false}>
           {current && (
             <motion.div
@@ -76,12 +76,15 @@ export function RoadPanel({ roads, chosen, onChoose }: Props) {
               exit={{ opacity: 0, transition: { duration: 0.1 } }}
               transition={{ duration: 0.2, ease: EASE_OUT }}
             >
-              <p className="font-semibold">{ROAD_HELP[current.road]}</p>
-              <ul className="mt-2 space-y-1.5 border-l-2 border-accent/60 pl-3 text-sm text-mist">
+              <p className="font-display text-lg">{ROAD_HELP[current.road]}</p>
+              <ul className="mt-2 space-y-1.5 border-l-2 border-string/70 pl-3 text-sm text-ink-soft">
                 {current.reasons.map((reason) => (
                   <li key={reason}>{reason}</li>
                 ))}
               </ul>
+              <p className="sticky mt-3 inline-block px-3 py-1.5 text-lg" style={{ rotate: '-0.8deg' }}>
+                First move: {ROAD_FIRST_STEP[current.road]}
+              </p>
             </motion.div>
           )}
         </AnimatePresence>

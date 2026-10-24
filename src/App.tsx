@@ -4,19 +4,17 @@ import { Link, Route, Routes, useLocation } from 'react-router-dom'
 import { Nav } from './components/Nav'
 import { Page } from './components/Page'
 import { useTitle } from './hooks/useTitle'
-import Camps from './pages/Camps'
+import Board from './pages/Board'
 import Home from './pages/Home'
-import { World } from './world/World'
+import { Room } from './room/Room'
 
-// The project and archive screens are heavier and are not needed for the first paint.
-const Project = lazy(() => import('./pages/Project'))
 const Archive = lazy(() => import('./pages/Archive'))
 
 function NotFound() {
   useTitle('Lost in the woods')
   return (
     <Page className="relative z-10 mx-auto max-w-xl px-5 pt-40 text-center">
-      <h1 className="text-[96px]">Lost in the woods</h1>
+      <h1 className="text-5xl">Lost in the woods</h1>
       <p className="mt-4 text-mist">That page does not exist.</p>
       <Link to="/" className="btn mt-6">
         Back to the start
@@ -25,9 +23,15 @@ function NotFound() {
   )
 }
 
+// A project's case file opens on top of its board, so the board stays mounted while the project changes.
+function routeKey(pathname: string): string {
+  const parts = pathname.split('/')
+  return parts[1] === 'u' ? `/u/${parts[2] ?? ''}` : pathname
+}
+
 export default function App() {
   const location = useLocation()
-  const hero = location.pathname === '/'
+  const outside = location.pathname === '/'
 
   return (
     <div className="relative min-h-dvh">
@@ -37,14 +41,13 @@ export default function App() {
       >
         Skip to content
       </a>
-      <World mode={hero ? 'hero' : 'app'} />
+      <Room mode={outside ? 'outside' : 'inside'} />
       <Nav />
       <AnimatePresence mode="wait">
         <Suspense fallback={null}>
-          <Routes location={location} key={location.pathname}>
+          <Routes location={location} key={routeKey(location.pathname)}>
             <Route path="/" element={<Home />} />
-            <Route path="/u/:user" element={<Camps />} />
-            <Route path="/u/:user/:repo" element={<Project />} />
+            <Route path="/u/:user/:repo?" element={<Board />} />
             <Route path="/archive" element={<Archive />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

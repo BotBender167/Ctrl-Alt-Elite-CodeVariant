@@ -1,7 +1,6 @@
 import { motion, useReducedMotion } from 'motion/react'
 import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
-
 import { EASE_OUT } from '../lib/motion'
 
 // Route transition. Purpose: spatial consistency. New screens rise from below the one you left, and
@@ -29,6 +28,29 @@ export function Page({ children, className = '' }: { children: ReactNode; classN
         transition: { duration: 0.18, ease: EASE_OUT },
       }}
       transition={{ duration: 0.4, ease: EASE_OUT }}
+    >
+      {children}
+    </motion.main>
+  )
+}
+
+// A screen that only fades. Used where children are positioned against the viewport (the board and its
+// case file), because a transformed ancestor would break fixed positioning.
+export function Screen({ children, className = '' }: { children: ReactNode; className?: string }) {
+  const ref = useRef<HTMLElement>(null)
+  useEffect(() => {
+    ref.current?.focus({ preventScroll: true })
+  }, [])
+  return (
+    <motion.main
+      ref={ref}
+      id="main"
+      tabIndex={-1}
+      className={`outline-none ${className}`}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0, transition: { duration: 0.2 } }}
+      transition={{ duration: 0.35 }}
     >
       {children}
     </motion.main>

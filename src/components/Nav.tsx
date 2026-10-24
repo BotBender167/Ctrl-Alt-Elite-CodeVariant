@@ -1,16 +1,18 @@
-import { Tent } from '@phosphor-icons/react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useState } from 'react'
-import { Link, NavLink } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import { fmtTime } from '../lib/format'
-import { useArchive, useRate, useSettings } from '../store'
 import { EASE_OUT } from '../lib/motion'
+import { useArchive, useRate, useSettings } from '../store'
 import { TokenForm } from './TokenForm'
 
 const LOW_QUOTA = 15
 
-// Minimal chrome: a wordmark and two text links. The request counter and token field appear only when they matter.
+// Minimal chrome. On the home screen the title is already the hero, so the wordmark steps aside there
+// (the old layout showed the name twice). Everywhere else it is the way back to the start.
 export function Nav() {
+  const { pathname } = useLocation()
+  const home = pathname === '/'
   const lastUser = useSettings((s) => s.lastUser)
   const hasToken = useSettings((s) => Boolean(s.token))
   const archived = useArchive((s) => Object.keys(s.entries).length)
@@ -22,17 +24,20 @@ export function Nav() {
   const active = '!text-cream'
 
   return (
-    <header className="fixed inset-x-0 top-0 z-30 bg-gradient-to-b from-ink/75 to-transparent px-4 pb-8 pt-4 sm:px-8">
-      <div className="mx-auto flex max-w-6xl items-center justify-between [text-shadow:0_1px_14px_rgb(5_12_18/0.9)]">
-        <Link to="/" className="flex items-center gap-2" aria-label="Unfinished Business, home">
-          <Tent size={26} weight="duotone" className="text-accent" />
-          <span className="display text-[28px] leading-none">Unfinished Business</span>
-        </Link>
+    <header className="pointer-events-none fixed inset-x-0 top-0 z-30 px-4 pb-8 pt-4 sm:px-8">
+      <div className="pointer-events-auto mx-auto flex max-w-6xl items-center justify-between [text-shadow:0_1px_14px_rgb(0_0_0/0.9)]">
+        {home ? (
+          <span />
+        ) : (
+          <Link to="/" className="font-display text-lg text-cream" aria-label="Unfinished Business, back to the start">
+            Unfinished Business
+          </Link>
+        )}
 
         <nav className="relative flex items-center gap-6" aria-label="Main">
-          {lastUser && (
-            <NavLink to={`/u/${lastUser}`} end className={({ isActive }) => `${link} ${isActive ? active : ''}`}>
-              Camps
+          {lastUser && !pathname.startsWith('/u/') && (
+            <NavLink to={`/u/${lastUser}`} className={({ isActive }) => `${link} ${isActive ? active : ''}`}>
+              My board
             </NavLink>
           )}
           <NavLink to="/archive" className={({ isActive }) => `${link} ${isActive ? active : ''}`}>
@@ -51,14 +56,14 @@ export function Nav() {
           <AnimatePresence>
             {open && (
               <motion.div
-                className="panel absolute right-0 top-full mt-3 w-[min(92vw,22rem)] p-4 [text-shadow:none]"
-                style={{ transformOrigin: 'top right', background: 'rgb(14 26 37 / 0.96)' }}
+                className="paper absolute right-0 top-full mt-3 w-[min(92vw,22rem)] p-4 [text-shadow:none]"
+                style={{ transformOrigin: 'top right' }}
                 initial={{ opacity: 0, transform: 'scale(0.96)' }}
                 animate={{ opacity: 1, transform: 'scale(1)' }}
                 exit={{ opacity: 0, transform: 'scale(0.96)', transition: { duration: 0.12 } }}
                 transition={{ duration: 0.16, ease: EASE_OUT }}
               >
-                {resetAt && lowQuota && <p className="mb-3 text-sm text-mist">Resets at {fmtTime(resetAt)}.</p>}
+                {resetAt && lowQuota && <p className="mb-3 text-sm text-ink-soft">Resets at {fmtTime(resetAt)}.</p>}
                 <TokenForm onDone={() => setOpen(false)} />
               </motion.div>
             )}
