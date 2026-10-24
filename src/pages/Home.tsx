@@ -47,7 +47,12 @@ export default function Home() {
 
   return (
     <Page className="relative z-10 flex min-h-dvh flex-col items-center justify-center px-5 pb-20 pt-28 text-center">
-      <div className="w-full max-w-3xl [text-shadow:0_2px_30px_rgb(5_12_18/0.7)]">
+      <div
+        className="pointer-events-none absolute left-1/2 top-[44%] h-[70%] w-[min(900px,100%)] -translate-x-1/2 -translate-y-1/2"
+        style={{ background: 'radial-gradient(ellipse at center, rgb(8 16 24 / 0.62), transparent 68%)' }}
+        aria-hidden="true"
+      />
+      <div className="relative w-full max-w-3xl [text-shadow:0_2px_30px_rgb(5_12_18/0.8)]">
         <Rise delay={0.1}>
           <h1 className="text-[clamp(84px,15vw,200px)] leading-[0.8] text-cream">
             Unfinished
@@ -62,7 +67,7 @@ export default function Home() {
         </Rise>
       </div>
 
-      <Rise delay={0.4} className="mt-8 w-full max-w-xl">
+      <Rise delay={0.4} className="relative mt-8 w-full max-w-xl">
         <form onSubmit={handleSubmit} noValidate className="text-left">
           <label htmlFor="username" className="mb-2 block text-sm font-medium text-cream [text-shadow:0_1px_12px_rgb(5_12_18/0.8)]">
             GitHub username
@@ -98,7 +103,7 @@ export default function Home() {
         <p className="mt-5 flex flex-wrap items-center justify-center gap-2 text-sm text-cream/90 [text-shadow:0_1px_12px_rgb(5_12_18/0.8)]">
           <span>No account handy? Try</span>
           {DEMOS.map((d) => (
-            <button key={d} type="button" className="btn ghost small !h-8 !px-3 !text-sm" onClick={() => go(d)}>
+            <button key={d} type="button" className="btn ghost small !h-8 !bg-ink/70 !px-3 !text-sm" onClick={() => go(d)}>
               {d}
             </button>
           ))}

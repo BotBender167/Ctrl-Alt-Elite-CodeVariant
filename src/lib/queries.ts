@@ -14,7 +14,7 @@ export function useWorld(project: ProjectData | undefined, keywords: string[], e
   const sinceIso = project ? (project.stats?.lastDate ?? project.meta.pushed_at ?? project.meta.created_at) : ''
   return useQuery({
     queryKey: ['world', project?.meta.full_name.toLowerCase() ?? '', keywords.join('|')],
-    queryFn: () => searchSimilar(keywords, sinceIso, project?.meta.full_name ?? ''),
+    queryFn: () => searchSimilar(keywords, sinceIso, project?.meta.full_name ?? '', project?.meta.language ?? null),
     enabled: enabled && Boolean(project) && keywords.length > 0,
   })
 }

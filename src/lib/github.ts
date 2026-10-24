@@ -101,7 +101,9 @@ async function raw(path: string, accept = 'application/vnd.github+json'): Promis
       const limit = res.headers.get('x-ratelimit-limit')
       const reset = res.headers.get('x-ratelimit-reset')
       const resetAt = reset ? Number(reset) * 1000 : null
-      if (remaining !== null) {
+      // Search has its own tiny quota, so only the main (core) quota is shown to the user.
+      const isCore = (res.headers.get('x-ratelimit-resource') ?? 'core') === 'core'
+      if (remaining !== null && isCore) {
         useRate.getState().set({ remaining: Number(remaining), limit: Number(limit ?? 0), resetAt })
       }
 
@@ -241,15 +243,28 @@ export async function loadProject(owner: string, repo: string): Promise<ProjectD
   return { meta, stats, readme, tree, hasRelease }
 }
 
-export async function searchSimilar(keywords: string[], sinceIso: string, selfFullName: string): Promise<Repo[]> {
+// Looks for projects like this one that appeared after the last commit. Matching on name, description and
+// topics (not README text) and on the same language keeps the results about the same idea, not just the same words.
+export async function searchSimilar(
+  keywords: string[],
+  sinceIso: string,
+  selfFullName: string,
+  language: string | null,
+): Promise<Repo[]> {
   if (keywords.length === 0) return []
   const since = sinceIso.slice(0, 10)
+  const lang = language ? ` language:${language.includes(' ') ? `"${language}"` : language}` : ''
   const run = async (words: string[]): Promise<Repo[]> => {
-    const q = `${words.join(' ')} created:>${since} fork:false`
-    const hit = await raw(`/search/repositories?q=${encodeURIComponent(q)}&sort=stars&order=desc&per_page=8`)
+    const q = `${words.join(' ')} in:name,description,topics created:>${since} fork:false${lang}`
+    const hit = await raw(`/search/repositories?q=${encodeURIComponent(q)}&per_page=8`)
     return parse(SearchSchema, hit.body).items.filter((r) => r.full_name.toLowerCase() !== selfFullName.toLowerCase())
   }
-  const found = await run(keywords)
-  if (found.length > 0 || keywords.length === 1) return found
-  return run(keywords.slice(0, 1))
+  const attempts = [keywords.slice(0, 3), keywords.slice(0, 2), keywords.slice(0, 1)].filter(
+    (w, i, all) => all.findIndex((x) => x.join() === w.join()) === i,
+  )
+  for (const words of attempts) {
+    const found = await run(words)
+    if (found.length > 0) return found
+  }
+  return []
 }

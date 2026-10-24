@@ -9,6 +9,7 @@ export function daysBetweenDates(aIso: string, bIso: string): number {
 }
 
 export function fmtDays(days: number): string {
+  if (days < 1) return 'less than a day'
   if (days < 60) return `${days} day${days === 1 ? '' : 's'}`
   if (days < 730) return `${Math.round(days / 30)} months`
   return `${(days / 365).toFixed(1).replace(/\.0$/, '')} years`
