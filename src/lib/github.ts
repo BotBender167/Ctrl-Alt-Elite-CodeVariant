@@ -4,6 +4,8 @@ import { CommitItemSchema, RepoSchema, SearchSchema, TreeSchema } from './types'
 import type { CommitItem, CommitStats, ProjectData, Repo, TreeEntry } from './types'
 
 const BASE = 'https://api.github.com'
+// When set, requests go through the same-origin serverless proxy (api/github.ts), which adds a server-side token.
+const PROXY = import.meta.env.VITE_API_PROXY
 const TTL_MS = 10 * 60 * 1000
 const MAX_PARALLEL = 4
 const DAY_MS = 86_400_000
@@ -88,11 +90,12 @@ async function raw(path: string, accept = 'application/vnd.github+json'): Promis
     try {
       const headers: Record<string, string> = { Accept: accept, 'X-GitHub-Api-Version': '2022-11-28' }
       const token = useSettings.getState().token
-      if (token) headers.Authorization = `Bearer ${token}`
+      if (token && !PROXY) headers.Authorization = `Bearer ${token}`
+      const url = PROXY ? `${PROXY}?path=${encodeURIComponent(path)}` : BASE + path
 
       let res: Response
       try {
-        res = await fetch(BASE + path, { headers })
+        res = await fetch(url, { headers })
       } catch {
         throw new GhError('network', 'Could not reach GitHub. Check your connection.')
       }
