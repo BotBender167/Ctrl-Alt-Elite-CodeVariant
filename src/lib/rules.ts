@@ -63,24 +63,81 @@ export interface CauseInput {
   daysSilent: number
 }
 
-export function suggestCause(i: CauseInput): { cause: Cause; why: string } {
+export type Likelihood = 'likely' | 'possible' | 'unlikely'
+
+export interface CauseGuess {
+  cause: Cause
+  score: number
+  likelihood: Likelihood
+  why: string
+}
+
+export const LIKELIHOOD_LABEL: Record<Likelihood, string> = {
+  likely: 'Likely',
+  possible: 'Possible',
+  unlikely: 'Unlikely',
+}
+
+function likelihoodOf(score: number): Likelihood {
+  if (score >= 0.6) return 'likely'
+  if (score >= 0.3) return 'possible'
+  return 'unlikely'
+}
+
+// Every plausible reason gets a score and the evidence behind it, so people can pick the one that feels true.
+export function rankCauses(i: CauseInput): CauseGuess[] {
   const life = i.lifeDays
-  if (i.similarCount !== null && i.similarCount >= 3) {
-    return { cause: 'someone_shipped_it_first', why: `${i.similarCount} similar projects appeared after you stopped` }
+  const burst = i.burstShare ?? 0
+  const guesses: Array<{ cause: Cause; score: number; why: string }> = []
+
+  if (i.similarCount === null) {
+    guesses.push({ cause: 'someone_shipped_it_first', score: 0.15, why: 'We are still searching for similar projects.' })
+  } else if (i.similarCount >= 1) {
+    guesses.push({
+      cause: 'someone_shipped_it_first',
+      score: Math.min(0.95, 0.35 + i.similarCount * 0.12),
+      why: `${i.similarCount} similar project${i.similarCount === 1 ? '' : 's'} appeared after you stopped.`,
+    })
+  } else {
+    guesses.push({ cause: 'someone_shipped_it_first', score: 0.05, why: 'Nothing similar has appeared since.' })
   }
-  if (life !== null && life <= RULES.hackathonLifeDays && (i.burstShare ?? 0) >= RULES.burstShare) {
-    return { cause: 'hackathon_ended', why: `The whole project lived ${fmtDays(life)}, in one burst` }
+
+  if (life !== null && life <= RULES.hackathonLifeDays && burst >= RULES.burstShare) {
+    guesses.push({ cause: 'hackathon_ended', score: 0.9, why: `The whole project lived ${fmtDays(life)}, in one burst.` })
+  } else if (life !== null && life <= 30 && burst >= 0.4) {
+    guesses.push({ cause: 'hackathon_ended', score: 0.5, why: `Most work happened in one short stretch, over ${fmtDays(life)}.` })
+  } else {
+    guesses.push({ cause: 'hackathon_ended', score: 0.08, why: 'The work was not squeezed into a single sprint.' })
   }
+
   if (life !== null && i.sizeKb >= RULES.scopeCreepSizeKb && life <= RULES.scopeCreepLifeDays) {
-    return { cause: 'scope_creep', why: `A big codebase built in just ${fmtDays(life)}` }
+    guesses.push({ cause: 'scope_creep', score: 0.8, why: `A big codebase built in just ${fmtDays(life)}.` })
+  } else if (life !== null && i.sizeKb >= 1500 && life <= 90) {
+    guesses.push({ cause: 'scope_creep', score: 0.4, why: 'It grew quickly for how long it lived.' })
+  } else {
+    guesses.push({ cause: 'scope_creep', score: 0.08, why: 'The repository is a modest size for its age.' })
   }
+
   if (RULES.blockedWords.test(i.lastMessage)) {
-    return { cause: 'blocked', why: `Last commit message: "${i.lastMessage.slice(0, 60)}"` }
+    guesses.push({ cause: 'blocked', score: 0.7, why: `Your last commit message was "${i.lastMessage.slice(0, 60)}".` })
+  } else {
+    guesses.push({ cause: 'blocked', score: 0.1, why: 'The last commit does not read like a struggle.' })
   }
+
   if (life !== null && life >= RULES.longLifeDays) {
-    return { cause: 'life_got_busy', why: `It ran for ${fmtDays(life)} before going quiet` }
+    guesses.push({ cause: 'life_got_busy', score: 0.6, why: `It ran for ${fmtDays(life)} before going quiet, which fits a busy stretch.` })
+  } else {
+    guesses.push({ cause: 'life_got_busy', score: 0.12, why: 'It did not run long enough to show a slow fade.' })
   }
-  return { cause: 'lost_interest', why: 'No stronger signal in the history, so this is the honest default' }
+
+  guesses.push({ cause: 'lost_interest', score: 0.25, why: 'The honest default when nothing else stands out.' })
+
+  return guesses.map((g) => ({ ...g, likelihood: likelihoodOf(g.score) })).sort((x, y) => y.score - x.score)
+}
+
+export function suggestCause(i: CauseInput): { cause: Cause; why: string } {
+  const top = rankCauses(i)[0]
+  return top ? { cause: top.cause, why: top.why } : { cause: 'lost_interest', why: 'No signal either way.' }
 }
 
 export function causeLabel(c: Cause): string {

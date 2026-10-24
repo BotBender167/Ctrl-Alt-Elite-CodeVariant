@@ -1,4 +1,5 @@
-import '@fontsource/amatic-sc/latin-700.css'
+import '@fontsource/caveat/latin-600.css'
+import '@fontsource/special-elite/latin-400.css'
 import '@fontsource/outfit/latin-400.css'
 import '@fontsource/outfit/latin-500.css'
 import '@fontsource/outfit/latin-600.css'

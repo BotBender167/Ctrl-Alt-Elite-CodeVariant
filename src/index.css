@@ -1,15 +1,19 @@
 @import "tailwindcss";
 
 @theme {
-  --font-display: "Amatic SC", cursive;
+  --font-display: "Special Elite", "Courier New", monospace;
+  --font-hand: "Caveat", cursive;
   --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --color-room: #0b0907;
   --color-cream: #f2ebd8;
-  --color-mist: #b7c9cd;
-  --color-accent: #f0963f;
-  --color-ink: #0f1b25;
-  --color-teal: #69c4b3;
-  --color-panel: rgb(14 26 37 / 0.74);
-  --color-line: rgb(242 235 216 / 0.2);
+  --color-mist: #b8ae98;
+  --color-accent: #f3a649;
+  --color-paper: #e9ddc2;
+  --color-paper-2: #d9c9a4;
+  --color-ink: #1c1710;
+  --color-ink-soft: #5f5340;
+  --color-string: #c0322c;
+  --color-sticky: #f3df7c;
   --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
 }
@@ -20,7 +24,7 @@
 
 html,
 body {
-  background: #0f1b25;
+  background: var(--color-room);
 }
 
 body {
@@ -33,19 +37,16 @@ body {
 
 h1,
 h2,
-h3,
-.display {
+h3 {
   font-family: var(--font-display);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.01em;
-  line-height: 0.86;
+  font-weight: 400;
+  line-height: 1.05;
 }
 
 :focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 3px;
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 button,
@@ -53,13 +54,70 @@ a {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* ---------- surfaces ---------- */
-.panel {
-  background: var(--color-panel);
-  border: 1px solid var(--color-line);
-  border-radius: 18px;
+/* ---------- the room: a stage that keeps the painted scene and the board perfectly aligned ---------- */
+.stage-wrap {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+.stage {
+  position: relative;
+  width: min(100vw, calc(100dvh * 1470 / 852));
+  aspect-ratio: 1470 / 852;
+  container-type: inline-size;
 }
 
+/* ---------- paper, stamps, sticky notes ---------- */
+.paper {
+  color: var(--color-ink);
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.28), rgb(255 255 255 / 0) 40%),
+    linear-gradient(180deg, #eee3c9, #e2d3b0);
+  border-radius: 3px;
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.5) inset,
+    0 2px 3px rgb(0 0 0 / 0.35),
+    0 14px 30px rgb(0 0 0 / 0.4);
+}
+
+.stamp {
+  display: inline-block;
+  border: 2px solid currentColor;
+  border-radius: 4px;
+  padding: 0.05em 0.4em;
+  font-family: var(--font-display);
+  font-size: 0.8em;
+  letter-spacing: 0.1em;
+  line-height: 1.25;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0.9;
+}
+.stamp.abandoned {
+  color: #b4261f;
+}
+.stamp.dormant {
+  color: #956516;
+}
+.stamp.finished {
+  color: #2d6a4b;
+}
+.stamp.alive {
+  color: #2b5c8a;
+}
+
+.sticky {
+  background: var(--color-sticky);
+  color: var(--color-ink);
+  font-family: var(--font-hand);
+  font-weight: 600;
+  line-height: 1.1;
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.3),
+    0 8px 14px rgb(0 0 0 / 0.3);
+}
+
+/* ---------- controls ---------- */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -77,15 +135,29 @@ a {
   cursor: pointer;
   transition:
     transform 160ms var(--ease-out-strong),
-    background-color 160ms ease;
+    background-color 160ms ease,
+    opacity 160ms ease;
 }
 .btn:active {
   transform: scale(0.97);
 }
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 .btn.ghost {
   background: rgb(242 235 216 / 0.1);
   color: var(--color-cream);
-  border: 1px solid var(--color-line);
+  border: 1px solid rgb(242 235 216 / 0.2);
+}
+.btn.ink {
+  background: var(--color-ink);
+  color: var(--color-cream);
+}
+.btn.line {
+  background: transparent;
+  color: var(--color-ink);
+  border: 1.5px solid rgb(28 23 16 / 0.55);
 }
 .btn.small {
   height: 40px;
@@ -93,47 +165,32 @@ a {
   font-size: 15px;
 }
 @media (hover: hover) and (pointer: fine) {
-  .btn:hover {
-    background: #ffab5c;
+  .btn:not(:disabled):hover {
+    background: #ffb862;
   }
-  .btn.ghost:hover {
+  .btn.ghost:not(:disabled):hover {
     background: rgb(242 235 216 / 0.18);
+  }
+  .btn.ink:not(:disabled):hover {
+    background: #34291b;
+  }
+  .btn.line:not(:disabled):hover {
+    background: rgb(28 23 16 / 0.08);
   }
 }
 
 .field {
   height: 52px;
-  border-radius: 14px;
+  border-radius: 10px;
   background: rgb(242 235 216 / 0.96);
-  color: #1c2a33;
+  color: #1c1710;
   font-size: 18px;
   padding: 0 18px;
   border: 2px solid transparent;
   width: 100%;
 }
 .field::placeholder {
-  color: #5b6b73;
-}
-
-.chip {
-  display: inline-flex;
-  align-items: center;
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-}
-.chip.alive {
-  color: var(--color-teal);
-}
-.chip.dormant {
-  color: var(--color-mist);
-}
-.chip.abandoned {
-  color: var(--color-accent);
-}
-.chip.finished {
-  color: var(--color-cream);
+  color: #6b6150;
 }
 
 .sign {
@@ -147,8 +204,8 @@ a {
   padding: 0 34px 0 18px;
   border: 0;
   cursor: pointer;
-  color: var(--color-cream);
-  background: rgb(242 235 216 / 0.1);
+  color: var(--color-ink);
+  background: rgb(28 23 16 / 0.09);
   clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 50%, calc(100% - 22px) 100%, 0 100%);
   font-size: 17px;
   font-weight: 500;
@@ -158,17 +215,21 @@ a {
     color 180ms ease;
 }
 .sign.on {
-  color: #1a120b;
+  color: var(--color-cream);
   font-weight: 600;
 }
 @media (hover: hover) and (pointer: fine) {
   .sign:not(.on):hover {
-    background: rgb(242 235 216 / 0.2);
+    background: rgb(28 23 16 / 0.16);
   }
 }
 
 .skeleton {
-  border-radius: 18px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, rgb(28 23 16 / 0.06), rgb(28 23 16 / 0.14), rgb(28 23 16 / 0.06));
+  background-size: 200% 100%;
+}
+.skeleton.dark {
   background: linear-gradient(90deg, rgb(242 235 216 / 0.06), rgb(242 235 216 / 0.14), rgb(242 235 216 / 0.06));
   background-size: 200% 100%;
 }
@@ -176,7 +237,7 @@ a {
 /* ---------- ambient motion (decorative, off under reduced motion) ---------- */
 @media (prefers-reduced-motion: no-preference) {
   .glowpulse {
-    animation: glowpulse 3.4s ease-in-out infinite alternate;
+    animation: glowpulse 3.6s ease-in-out infinite alternate;
   }
   .skeleton {
     animation: shimmer 1.6s linear infinite;
@@ -185,7 +246,7 @@ a {
 
 @keyframes glowpulse {
   from {
-    opacity: 0.55;
+    opacity: 0.6;
   }
   to {
     opacity: 1;

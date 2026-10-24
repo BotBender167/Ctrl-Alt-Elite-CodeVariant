@@ -40,8 +40,10 @@ export const useArchive = create<ArchiveState>()(
 interface SettingsState {
   token: string | null
   lastUser: string | null
+  hintSeen: boolean
   setToken: (token: string | null) => void
   setLastUser: (user: string) => void
+  dismissHint: () => void
 }
 
 export const useSettings = create<SettingsState>()(
@@ -49,8 +51,10 @@ export const useSettings = create<SettingsState>()(
     (set) => ({
       token: null,
       lastUser: null,
+      hintSeen: false,
       setToken: (token) => set({ token }),
       setLastUser: (lastUser) => set({ lastUser }),
+      dismissHint: () => set({ hintSeen: true }),
     }),
     { name: 'ub:v1:settings' },
   ),

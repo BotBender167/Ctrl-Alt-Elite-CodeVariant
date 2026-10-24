@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { extractKeywords, salvageModules, summarize } from './keywords'
-import { classifyDeep, classifyList, scoreRoads, suggestCause } from './rules'
+import { classifyDeep, classifyList, rankCauses, scoreRoads, suggestCause } from './rules'
 import type { Repo } from './types'
 
 const NOW = new Date('2026-10-24T12:00:00Z').getTime()
@@ -114,5 +114,23 @@ describe('keywords', () => {
       { path: '.github', type: 'tree' },
     ])
     expect(m).toEqual(['parser'])
+  })
+})
+
+describe('rankCauses', () => {
+  const base = { lifeDays: 90, burstShare: 0.2, sizeKb: 100, lastMessage: 'update readme', similarCount: null, daysSilent: 300 }
+
+  it('returns all six reasons, most plausible first, each with evidence', () => {
+    const r = rankCauses({ ...base, lifeDays: 4, burstShare: 0.9 })
+    expect(r).toHaveLength(6)
+    expect(r[0]?.cause).toBe('hackathon_ended')
+    expect(r[0]?.likelihood).toBe('likely')
+    expect(r.every((g) => g.why.length > 0)).toBe(true)
+  })
+
+  it('rates "someone shipped it first" higher as more similar projects are found', () => {
+    const score = (n: number) => rankCauses({ ...base, similarCount: n }).find((g) => g.cause === 'someone_shipped_it_first')?.score ?? 0
+    expect(score(6)).toBeGreaterThan(score(1))
+    expect(score(0)).toBeLessThan(score(1))
   })
 })

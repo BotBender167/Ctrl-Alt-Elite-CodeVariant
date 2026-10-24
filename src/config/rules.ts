@@ -52,6 +52,14 @@ export const ROAD_HELP: Record<Road, string> = {
   archive: 'Let it rest, with honour',
 }
 
+export const ROAD_FIRST_STEP: Record<Road, string> = {
+  restart: 'Open a fresh repository and write down the three things this project must do. Leave the rest behind.',
+  continue: 'Pick the one unfinished feature you remember best and finish only that this week.',
+  change: 'Keep the code, write one sentence about the new idea, and rename the repository to match it.',
+  repurpose: 'Copy the best folder into its own small repository with a README and one working example.',
+  archive: 'Write two lines in the README about what it was and why it stopped, then archive it on GitHub.',
+}
+
 export const CAUSES = [
   'hackathon_ended',
   'scope_creep',

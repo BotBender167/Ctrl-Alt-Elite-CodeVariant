@@ -8,7 +8,7 @@ interface KeywordInput {
   readme: string
 }
 
-function words(text: string): string[] {
+export function words(text: string): string[] {
   return text
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, ' ')
