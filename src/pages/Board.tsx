@@ -1,4 +1,4 @@
-import { Archive, MagnifyingGlass, Trash } from '@phosphor-icons/react'
+import { Archive, MagnifyingGlass, Trash, UserSwitch } from '@phosphor-icons/react'
 import { AnimatePresence, LayoutGroup } from 'motion/react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -14,7 +14,8 @@ import { Hub } from '../features/board/Hub'
 import { SLOT_COUNT, placeItems } from '../features/board/layout'
 import { cardOf, STATUS_ICON } from '../features/board/cards'
 import { Grip, Note } from '../features/board/Note'
-import { Inspector } from '../features/board/Inspector'
+import { overlappedBy } from '../features/board/detail'
+import { NoteDetail } from '../features/board/NoteDetail'
 import { RoomLight } from '../features/board/RoomLight'
 import { Strings } from '../features/board/Strings'
 import type { PlacedLink } from '../features/board/Strings'
@@ -101,6 +102,23 @@ export default function Board() {
 
   const litIndex = pageItems.findIndex((i) => i.repo.id === lit)
   const litItem = litIndex >= 0 ? pageItems[litIndex] : undefined
+  const litSlot = litIndex >= 0 ? placed.slots[litIndex] : undefined
+  const showDetail = Boolean(litItem && litSlot && !openRepo && !holding)
+  // Notes the details card would sit on are blurred, so only that project's details can be read.
+  const ties = useMemo(() => {
+    if (!showDetail || !litItem) return []
+    return placed.links
+      .filter((l) => l.aId === litItem.repo.id || l.bId === litItem.repo.id)
+      .slice(0, 2)
+      .map((l) => {
+        const other = pageItems.find((i) => i.repo.id === (l.aId === litItem.repo.id ? l.bId : l.aId))
+        return `${other?.repo.name ?? 'another project'}: ${l.reason}`
+      })
+  }, [showDetail, litItem, placed.links, pageItems])
+  const blurred = useMemo(() => {
+    if (!showDetail || !litItem || !litSlot) return new Set<number>()
+    return overlappedBy(litSlot, placed.spokes, litItem.repo.id)
+  }, [showDetail, litItem, litSlot, placed.spokes])
 
   function changeFilter(f: BoardFilter): void {
     setFilter(f)
@@ -127,6 +145,11 @@ export default function Board() {
     }
     keep(payload.key)
     toast(`${payload.name} kept for later.`, () => unkeep(payload.key))
+    return true
+  }
+  function switchProfile(payload: unknown): boolean {
+    if (typeof payload !== 'string') return false
+    navigate('/', { state: { skipIntro: true } })
     return true
   }
   function shred(payload: unknown): boolean {
@@ -159,11 +182,15 @@ export default function Board() {
                       index={i}
                       open={openRepo?.toLowerCase() === item.repo.name.toLowerCase()}
                       faded={lit !== null && lit !== item.repo.id}
+                      blurred={blurred.has(item.repo.id)}
                       kept={Boolean(kept[cardOf(item.repo).key])}
                       onLight={setLit}
                     />
                   )
                 })}
+                <AnimatePresence>
+                  {showDetail && litItem && litSlot && <NoteDetail key={litItem.repo.id} repo={litItem.repo} cls={litItem.cls} slot={litSlot} ties={ties} />}
+                </AnimatePresence>
                 {!hintSeen && !openRepo && (
                   <span
                     className="sticky absolute px-[1cqw] py-[0.5cqw] text-[clamp(13px,1.9cqw,30px)]"
@@ -174,15 +201,11 @@ export default function Board() {
                 )}
               </>
             )}
-            {!query.isError && <Hub user={user} filled count={query.isSuccess ? items.length : undefined} />}
+            {!query.isError && <Hub user={user} filled movable count={query.isSuccess ? items.length : undefined} />}
             {query.isPending && <BoardSkeleton />}
             <RoomLight />
           </div>
         </div>
-
-        <AnimatePresence>
-          {litItem && !openRepo && !holding && <Inspector key={litItem.repo.id} repo={litItem.repo} cls={litItem.cls} />}
-        </AnimatePresence>
 
         {/* Phones and narrow windows: the same notes as a simple pinned list, with the same zones below. */}
         <div className="h-full overflow-y-auto px-4 pb-44 pt-28 min-[900px]:hidden">
@@ -236,6 +259,7 @@ export default function Board() {
               <ActionZone id="examine" accepts={[CARD.repo]} title="Examine" sub="Open the case file" icon={<MagnifyingGlass size={26} weight="bold" />} onDrop={examine} />
               <ActionZone id="keep" accepts={[CARD.repo]} title="Keep" sub="Mark it for later" icon={<Archive size={26} weight="bold" />} onDrop={keepIt} count={Object.keys(kept).filter((k) => k.startsWith(`${user.toLowerCase()}/`)).length} />
               <ActionZone id="shred" accepts={[CARD.repo]} title="Shred" sub="Take it off the board" icon={<Trash size={26} weight="bold" />} onDrop={shred} />
+              <ActionZone id="switch" accepts={[CARD.profile]} title="Switch profile" sub="Drag your circle here" icon={<UserSwitch size={26} weight="bold" />} onDrop={switchProfile} />
             </ZoneTray>
           </>
         )}

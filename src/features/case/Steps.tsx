@@ -6,10 +6,8 @@ import { ErrorPanel } from '../../components/ErrorPanel'
 import { toast } from '../../lib/toast'
 import { RoadPanel } from '../../components/RoadPanel'
 import { Trail } from '../../components/Trail'
-import { CAUSE_LABEL } from '../../config/rules'
-import { fmtDate, fmtDays, fmtStars } from '../../lib/format'
+import { fmtDate, fmtDays, fmtMonth, fmtStars } from '../../lib/format'
 import { EASE_OUT } from '../../lib/motion'
-import { LIKELIHOOD_LABEL } from '../../lib/rules'
 import type { Repo } from '../../lib/types'
 import type { ArchiveEntry } from '../../store'
 import { DropZone } from '../dnd/DropZone'
@@ -47,43 +45,6 @@ export function StepWhen({ m }: { m: CaseModel }) {
   )
 }
 
-export function StepWhy({ m }: { m: CaseModel }) {
-  const reduce = useReducedMotion()
-  const glide = reduce ? { duration: 0 } : { type: 'spring' as const, duration: 0.35, bounce: 0.1 }
-  return (
-    <div>
-      <p className="font-hand text-3xl leading-none">What most likely happened?</p>
-      <p className="mt-2 text-ink-soft">We ranked the reasons from the evidence. Pick the one that feels true. You know this project better than we do.</p>
-      <ul className="mt-5 space-y-2" role="radiogroup" aria-label="Why it stopped">
-        {m.causes.map((g) => {
-          const on = m.cause === g.cause
-          return (
-            <li key={g.cause}>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={on}
-                onClick={() => m.setCause(g.cause)}
-                className={`relative block w-full rounded-md px-4 py-3 text-left transition-opacity duration-150 ${on || g.likelihood !== 'unlikely' ? '' : 'opacity-70'}`}
-              >
-                <span className="absolute inset-0 rounded-md bg-ink/[0.04]" />
-                {on && <motion.span layoutId="why-ring" className="absolute inset-0 rounded-md border-2 border-string" transition={glide} />}
-                <span className="relative flex items-baseline justify-between gap-3">
-                  <span className="font-display text-lg">{CAUSE_LABEL[g.cause]}</span>
-                  <span className={`text-xs font-semibold uppercase tracking-wider ${g.likelihood === 'likely' ? 'text-string' : 'text-ink-soft'}`}>
-                    {LIKELIHOOD_LABEL[g.likelihood]}
-                  </span>
-                </span>
-                <span className="relative mt-0.5 block text-sm text-ink-soft">{g.why}</span>
-              </button>
-            </li>
-          )
-        })}
-      </ul>
-    </div>
-  )
-}
-
 export function StepAround({ m }: { m: CaseModel }) {
   const reduce = useReducedMotion()
   const [word, setWord] = useState('')
@@ -100,7 +61,7 @@ export function StepAround({ m }: { m: CaseModel }) {
     <div>
       <p className="font-hand text-3xl leading-none">Who else built this?</p>
       <p className="mt-2 text-ink-soft">
-        Projects like yours that appeared after {fmtDate(m.lastDate)}. Drag up to {MAX_COMPARE} into the tray to compare them in the last step.
+        You stopped on {fmtDate(m.lastDate)}. These started after that. Drag up to {MAX_COMPARE} into the tray to compare them in the last step.
       </p>
 
       <CompareTray m={m} />
@@ -298,7 +259,7 @@ function SimilarRow({ repo: r, index, picked, reduce }: { repo: Repo; index: num
             {r.full_name}
           </a>
           <span className="text-sm text-ink-soft">
-            {fmtStars(r.stargazers_count)} stars, started {new Date(r.created_at).getFullYear()}
+            {fmtStars(r.stargazers_count)} stars, started {new Date(r.created_at).getFullYear()}, last push {fmtMonth(r.pushed_at ?? r.created_at)}
             {picked && ', in the tray'}
           </span>
         </p>

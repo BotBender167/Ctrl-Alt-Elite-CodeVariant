@@ -1,21 +1,29 @@
+import { DOOR_TRACK, VIDEO_FRAMES } from './doorTrack'
+
 // The scroll-driven opening. Scrolling walks you toward the house; nothing plays by itself.
-// Progress runs 0 to 1 down the scroll runway: the video is scrubbed first, then the door opens onto the room.
+// Progress runs 0 to 1 down the scroll runway. The video (the walk, the door swinging open, the push into the
+// doorway) is scrubbed first. Through all of that, the room is shown inside the doorway, as measured from the
+// footage. The rest of the runway widens the doorway until the room fills the screen.
+
+const VIDEO_END = 0.8
+const FIRST_DOOR_FRAME = DOOR_TRACK[0]?.frame ?? VIDEO_FRAMES
+
 export const INTRO = {
   // How tall the scroll runway is, in viewport heights. Longer means a slower, smoother walk.
-  trackVh: 520,
+  trackVh: 640,
   // The video is fully scrubbed by here.
-  videoEnd: 0.72,
-  // The door starts to open, and the room behind it fills the screen by doorEnd.
-  doorStart: 0.72,
+  videoEnd: VIDEO_END,
+  // The door begins to open on this frame, and the room fills the screen by doorEnd.
+  doorStart: (FIRST_DOOR_FRAME / (VIDEO_FRAMES - 1)) * VIDEO_END,
   doorEnd: 0.95,
   // The card and the profile circle become usable once the room is fully in view.
   readyAt: 0.96,
 } as const
 
-// Where the door sits in the last video frame, as fractions of the frame. The room is revealed through
-// a slit this size, which widens until it is the whole screen.
-export const DOOR = { x0: 0.489, x1: 0.511, y0: 0.4, y1: 0.745 } as const
 export const VIDEO_ASPECT = 16 / 9
+
+type Rect = readonly [number, number, number, number]
+const FULL: Rect = [0, 0, 1, 1]
 
 const BASE = import.meta.env.BASE_URL
 
@@ -35,30 +43,68 @@ export const ROOM_SRCSET = `${BASE}room-2560.jpg 2560w, ${BASE}room-3840.jpg 384
 const clamp01 = (t: number): number => Math.min(1, Math.max(0, t))
 const easeInOut = (t: number): number => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t
+const lerpRect = (a: Rect, b: Rect, t: number): Rect => [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t), lerp(a[3], b[3], t)]
 
-// How far the door has opened, 0 (shut) to 1 (the room fills the screen).
+// Which moment of the video this scroll position shows, as a (fractional) frame number.
+export function videoFrame(progress: number): number {
+  return clamp01(progress / INTRO.videoEnd) * (VIDEO_FRAMES - 1)
+}
+
+// The door swings from the first crack to wide open between these two frames of the footage.
+const SWING_LAST_FRAME = 148
+
+// How far the door itself has swung, 0 (shut) to 1 (wide open). The creak follows how fast this changes.
+export function doorSwing(progress: number): number {
+  return clamp01((videoFrame(progress) - FIRST_DOOR_FRAME) / (SWING_LAST_FRAME - FIRST_DOOR_FRAME))
+}
+
+// How far the door has opened, 0 (shut) to 1 (the room fills the screen). Drives the light, the zoom and the sound.
 export function doorOpen(progress: number): number {
   return easeInOut(clamp01((progress - INTRO.doorStart) / (INTRO.doorEnd - INTRO.doorStart)))
 }
 
-// The door slit in viewport pixels. The video is drawn with object-fit: cover, so the frame can overflow.
-function doorRect(vw: number, vh: number): { left: number; top: number; right: number; bottom: number } {
+// The doorway on a (fractional) frame, or null while the door is still shut.
+function doorwayAt(frame: number): Rect | null {
+  const first = DOOR_TRACK[0]
+  const last = DOOR_TRACK[DOOR_TRACK.length - 1]
+  if (!first || !last || frame < first.frame) return null
+  if (frame >= last.frame) return last.rect
+  for (let i = 1; i < DOOR_TRACK.length; i++) {
+    const a = DOOR_TRACK[i - 1]
+    const b = DOOR_TRACK[i]
+    if (a && b && frame <= b.frame) return lerpRect(a.rect, b.rect, (frame - a.frame) / Math.max(1, b.frame - a.frame))
+  }
+  return last.rect
+}
+
+// The video is drawn with object-fit: cover, so its frame can overflow the window.
+function toPixels(rect: Rect, vw: number, vh: number): Rect {
   const scale = Math.max(vw / VIDEO_ASPECT, vh)
   const w = scale * VIDEO_ASPECT
   const h = scale
   const ox = (vw - w) / 2
   const oy = (vh - h) / 2
-  return { left: ox + DOOR.x0 * w, right: ox + DOOR.x1 * w, top: oy + DOOR.y0 * h, bottom: oy + DOOR.y1 * h }
+  return [ox + rect[0] * w, oy + rect[1] * h, ox + rect[2] * w, oy + rect[3] * h]
 }
 
-// clip-path for the room layer: a thin lit slit where the door is, widening to the full viewport.
-export function doorClip(open: number, vw: number, vh: number): string {
-  const d = doorRect(vw, vh)
-  const t = open
-  const top = lerp(d.top, 0, t)
-  const left = lerp(d.left, 0, t)
-  const right = lerp(vw - d.right, 0, t)
-  const bottom = lerp(vh - d.bottom, 0, t)
-  const radius = lerp(2, 0, t)
-  return `inset(${top.toFixed(1)}px ${right.toFixed(1)}px ${bottom.toFixed(1)}px ${left.toFixed(1)}px round ${radius.toFixed(1)}px)`
+const HIDDEN = 'inset(50% 50% 50% 50%)'
+
+// clip-path for the room layer: the room is visible only through the doorway, which follows the real door in
+// the footage as it swings open, then widens to the whole screen.
+export function doorClip(progress: number, vw: number, vh: number): string {
+  const lastRect = DOOR_TRACK[DOOR_TRACK.length - 1]?.rect ?? FULL
+  let rect: Rect
+  if (progress <= INTRO.videoEnd) {
+    const found = doorwayAt(videoFrame(progress))
+    if (!found) return HIDDEN
+    rect = toPixels(found, vw, vh)
+  } else {
+    const t = easeInOut(clamp01((progress - INTRO.videoEnd) / (INTRO.doorEnd - INTRO.videoEnd)))
+    rect = lerpRect(toPixels(lastRect, vw, vh), [0, 0, vw, vh], t)
+  }
+  const top = Math.max(0, rect[1])
+  const left = Math.max(0, rect[0])
+  const right = Math.max(0, vw - rect[2])
+  const bottom = Math.max(0, vh - rect[3])
+  return `inset(${top.toFixed(1)}px ${right.toFixed(1)}px ${bottom.toFixed(1)}px ${left.toFixed(1)}px)`
 }

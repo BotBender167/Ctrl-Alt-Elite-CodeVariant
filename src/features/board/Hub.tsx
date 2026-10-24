@@ -2,6 +2,7 @@ import { PushPin } from '@phosphor-icons/react'
 import { useState } from 'react'
 import { DropZone } from '../dnd/DropZone'
 import { CARD } from '../dnd/types'
+import { useDraggable } from '../dnd/useDraggable'
 import { HUB } from './layout'
 
 function Avatar({ user }: { user: string }) {
@@ -24,10 +25,13 @@ interface Props {
   onDrop?: (payload: unknown) => boolean | void
   filled: boolean
   count?: number
+  // On the board the profile is a card too: drag it onto Switch profile to scan someone else.
+  movable?: boolean
 }
 
 // You, in the middle of the board. Every project hangs off this circle by a string.
-export function Hub({ user, onDrop, filled, count }: Props) {
+export function Hub({ user, onDrop, filled, count, movable = false }: Props) {
+  const drag = useDraggable({ type: CARD.profile, payload: user, label: `@${user}`, ariaLabel: `Your profile, @${user}` })
   const place = { left: `${HUB.x}%`, top: `${HUB.y}%` }
   if (!filled && onDrop) {
     return (
@@ -51,7 +55,11 @@ export function Hub({ user, onDrop, filled, count }: Props) {
   }
   return (
     <div className="hub-pos" style={place}>
-      <div className="hub on" role="img" aria-label={`Your profile, @${user}`}>
+      <div
+        className={`hub on ${movable ? 'drag' : ''}`}
+        data-drag-item={movable ? '' : undefined}
+        {...(movable ? { ...drag.pointer, ...drag.keyboard } : { role: 'img', 'aria-label': `Your profile, @${user}` })}
+      >
         <Avatar user={user} />
         <PushPin weight="fill" className="hub-pin" aria-hidden="true" />
         <span className="hub-plate">

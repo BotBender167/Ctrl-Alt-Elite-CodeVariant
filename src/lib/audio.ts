@@ -1,9 +1,10 @@
-import { doorOpen, INTRO } from '../room/intro'
+import { doorOpen, doorSwing, INTRO } from '../room/intro'
 import { useSettings } from '../store'
 
 // The soundscape. Browsers only allow sound after a click or key press, so it starts when the visitor turns
 // it on (and stays on for next time). While you walk up to the house the original ambience gets louder and
-// brighter and a low drone rises; the door creaks as it opens; inside the room it settles into the hum of a
+// brighter and a low drone rises; the door cracks and its hinge creaks exactly as fast as you swing it (stop
+// scrolling and it falls silent); inside the room it settles into the hum of a
 // dying lamp that stutters in time with the light. Everything is kept quiet on purpose.
 
 type Scene = 'walk' | 'room'
@@ -28,14 +29,24 @@ interface Graph {
   humGain: GainNode
   flickerGain: GainNode
   noise: AudioBuffer
+  creakGain: GainNode
+  creakOsc: OscillatorNode
+  creakLow: BiquadFilterNode
+  creakHigh: BiquadFilterNode
+  raspGain: GainNode
 }
 
 let graph: Graph | null = null
 let starting: Promise<void> | null = null
 let scene: Scene = 'room'
 let progress = 1
-let wasPastDoor = false
 let wasInRoom = false
+let cracked = false
+let lastSwing = 0
+let lastStamp = 0
+let stick = 1
+let stickAt = 0
+let creakIdle = 0
 
 const clamp01 = (t: number): number => Math.min(1, Math.max(0, t))
 
@@ -94,7 +105,34 @@ function build(ctx: AudioContext, ambience: AudioBuffer): Graph {
   }
   humGain.connect(flickerGain).connect(master)
 
-  return { ctx, master, bedGain, bedFilter, droneGain, windGain, windFilter, humGain, flickerGain, noise }
+  // The hinge: a buzzing wooden pulse through two resonances, plus a dry rasp of friction. Both stay silent
+  // until the door is moving.
+  const creakGain = ctx.createGain()
+  const creakOsc = ctx.createOscillator()
+  creakOsc.type = 'sawtooth'
+  creakOsc.frequency.value = 60
+  const creakLow = ctx.createBiquadFilter()
+  creakLow.type = 'bandpass'
+  creakLow.Q.value = 9
+  const creakHigh = ctx.createBiquadFilter()
+  creakHigh.type = 'bandpass'
+  creakHigh.Q.value = 5
+  creakOsc.connect(creakLow).connect(creakGain)
+  creakOsc.connect(creakHigh).connect(creakGain)
+  creakGain.connect(master)
+  creakOsc.start()
+  const raspGain = ctx.createGain()
+  const rasp = ctx.createBufferSource()
+  rasp.buffer = noise
+  rasp.loop = true
+  const raspFilter = ctx.createBiquadFilter()
+  raspFilter.type = 'bandpass'
+  raspFilter.frequency.value = 1900
+  raspFilter.Q.value = 1.4
+  rasp.connect(raspFilter).connect(raspGain).connect(master)
+  rasp.start()
+
+  return { ctx, master, bedGain, bedFilter, droneGain, windGain, windFilter, humGain, flickerGain, noise, creakGain, creakOsc, creakLow, creakHigh, raspGain }
 }
 
 function ramp(param: AudioParam, ctx: AudioContext, value: number, seconds = 0.18): void {
@@ -159,37 +197,48 @@ function thud(level: number, from = 130, to = 45, seconds = 0.2): void {
   o.stop(t + seconds + 0.05)
 }
 
-// A slow, rusty door hinge, then the latch.
-function creak(): void {
+// The first give of old wood: a sharp crack, a dull knock, and a second smaller tick as the latch lets go.
+function crack(): void {
+  burst(0.09, 2800, 700, 0.14, 1.6)
+  thud(0.14, 150, 55, 0.2)
+  window.setTimeout(() => burst(0.04, 4200, 2600, 0.05, 2.4), 75)
+}
+
+function quietCreak(): void {
   if (!graph) return
-  const { ctx, master } = graph
-  const t = ctx.currentTime
-  const o = ctx.createOscillator()
-  o.type = 'sawtooth'
-  o.frequency.setValueAtTime(105, t)
-  o.frequency.exponentialRampToValueAtTime(360, t + 1.5)
-  const vib = ctx.createOscillator()
-  vib.frequency.value = 17
-  const vibDepth = ctx.createGain()
-  vibDepth.gain.value = 20
-  vib.connect(vibDepth).connect(o.frequency)
-  const f = ctx.createBiquadFilter()
-  f.type = 'bandpass'
-  f.Q.value = 7
-  f.frequency.setValueAtTime(650, t)
-  f.frequency.linearRampToValueAtTime(1500, t + 1.5)
-  const g = ctx.createGain()
-  g.gain.setValueAtTime(0, t)
-  g.gain.linearRampToValueAtTime(0.15, t + 0.2)
-  g.gain.linearRampToValueAtTime(0.09, t + 1)
-  g.gain.exponentialRampToValueAtTime(0.001, t + 1.8)
-  o.connect(f).connect(g).connect(master)
-  o.start(t)
-  vib.start(t)
-  o.stop(t + 1.9)
-  vib.stop(t + 1.9)
-  thud(0.12, 90, 38, 0.3)
-  burst(0.05, 2400, 1800, 0.05, 2)
+  ramp(graph.creakGain.gain, graph.ctx, 0, 0.09)
+  ramp(graph.raspGain.gain, graph.ctx, 0, 0.09)
+}
+
+// The hinge creaks exactly as fast as the door moves. Its pitch climbs as the door opens, and jitters a little
+// as the wood sticks and lets go. A moment after you stop scrolling it goes quiet.
+function creak(swing: number): void {
+  if (!graph) return
+  const now = performance.now()
+  const dt = Math.max(16, now - lastStamp)
+  const speed = Math.abs(swing - lastSwing) / (dt / 1000)
+  lastSwing = swing
+  lastStamp = now
+  const moving = swing > 0.01 && swing < 0.995 && speed > 0.015
+  if (swing > 0.03 && !cracked) {
+    cracked = true
+    crack()
+  }
+  if (swing < 0.008) cracked = false
+  if (!moving) return
+  if (now - stickAt > 90) {
+    stick = 0.8 + Math.random() * 0.45
+    stickAt = now
+  }
+  const level = Math.min(0.2, 0.05 + speed * 0.22)
+  const { ctx } = graph
+  ramp(graph.creakGain.gain, ctx, level, 0.05)
+  ramp(graph.raspGain.gain, ctx, level * 0.55, 0.05)
+  ramp(graph.creakOsc.frequency, ctx, (46 + 90 * swing) * stick, 0.04)
+  ramp(graph.creakLow.frequency, ctx, (320 + 420 * swing) * stick, 0.05)
+  ramp(graph.creakHigh.frequency, ctx, 880 + 720 * swing * stick, 0.05)
+  window.clearTimeout(creakIdle)
+  creakIdle = window.setTimeout(quietCreak, 110)
 }
 
 // Air rushing in as the room opens up.
@@ -268,17 +317,14 @@ export function setScene(next: Scene, p: number): void {
   scene = next
   progress = p
   if (scene === 'walk') {
-    const past = p >= INTRO.doorStart
-    if (past && !wasPastDoor && graph && useSettings.getState().sound) creak()
-    if (!past && p < INTRO.doorStart - 0.04) wasPastDoor = false
-    else if (past) wasPastDoor = true
+    if (graph && useSettings.getState().sound) creak(doorSwing(p))
     const inRoom = p >= INTRO.doorEnd - 0.08
     if (inRoom && !wasInRoom && graph && useSettings.getState().sound) swell()
     if (p < INTRO.doorEnd - 0.12) wasInRoom = false
     else if (inRoom) wasInRoom = true
   } else {
-    wasPastDoor = true
     wasInRoom = true
+    quietCreak()
   }
   apply()
 }

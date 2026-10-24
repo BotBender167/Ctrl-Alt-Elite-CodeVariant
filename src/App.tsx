@@ -34,7 +34,8 @@ function routeKey(pathname: string): string {
 
 export default function App() {
   const location = useLocation()
-  const outside = location.pathname === '/'
+  const comingBack = Boolean((location.state as { skipIntro?: boolean } | null)?.skipIntro)
+  const outside = location.pathname === '/' && !comingBack
 
   useEffect(() => armSoundOnGesture(), [])
 

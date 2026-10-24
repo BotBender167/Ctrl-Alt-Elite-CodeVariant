@@ -29,7 +29,7 @@ function sagged(p: Point, q: Point, sag: number): { d: string; mx: number; my: n
 
 // Red string from your profile to every project, drawn as each note lands. Purpose: connection. Everything
 // on the board is yours and hangs off you. Pointing at a note pulls its string tight and shows any
-// project it is also tied to, with the reason on a sticky note.
+// project it is also tied to (the reason is written in the details card).
 export function Strings({ spokes, links, lit }: { spokes: Spoke[]; links: PlacedLink[]; lit: number | null }) {
   const reduce = useReducedMotion()
   const hub = hubPoint()
@@ -69,18 +69,6 @@ export function Strings({ spokes, links, lit }: { spokes: Spoke[]; links: Placed
           />
         ))}
       </svg>
-      {tied.map((l) => {
-        const c = sagged(pinPoint(l.a), pinPoint(l.b), 2.4)
-        return (
-          <span
-            key={`label-${l.aId}-${l.bId}`}
-            className="sticky pointer-events-none absolute z-10 whitespace-nowrap px-[0.9cqw] py-[0.35cqw] text-[clamp(11px,1.6cqw,26px)]"
-            style={{ left: `${c.mx}%`, top: `${(c.my / STAGE_HEIGHT_UNITS) * 100}%`, translate: '-50% -50%', rotate: '-2deg' }}
-          >
-            {l.reason}
-          </span>
-        )
-      })}
     </>
   )
 }

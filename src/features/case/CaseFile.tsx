@@ -7,14 +7,13 @@ import { useProject } from '../../lib/queries'
 import { useArchive } from '../../store'
 import { useCaseModel } from './model'
 import type { CaseModel } from './model'
-import { StepAround, StepMove, StepWhen, StepWhy } from './Steps'
+import { StepAround, StepMove, StepWhen } from './Steps'
 import { VerdictZone } from './VerdictZone'
 import type { Road } from '../../config/rules'
 
 const STEPS = [
   { id: 'when', label: 'When it stopped', short: 'When' },
-  { id: 'why', label: 'Why', short: 'Why' },
-  { id: 'around', label: 'Built around it', short: 'Around' },
+  { id: 'around', label: 'Built around it', short: 'Similar' },
   { id: 'move', label: 'Your move', short: 'Move' },
 ] as const
 
@@ -203,9 +202,8 @@ function FileBody({ data, onClose }: { data: NonNullable<ReturnType<typeof usePr
             transition={{ duration: 0.22, ease: EASE_OUT }}
           >
             {step === 0 && <StepWhen m={m} />}
-            {step === 1 && <StepWhy m={m} />}
-            {step === 2 && <StepAround m={m} />}
-            {step === 3 && <StepMove m={m} saved={saved} justSaved={justSaved} onBackToBoard={onClose} />}
+            {step === 1 && <StepAround m={m} />}
+            {step === 2 && <StepMove m={m} saved={saved} justSaved={justSaved} onBackToBoard={onClose} />}
           </motion.div>
         </AnimatePresence>
       </div>

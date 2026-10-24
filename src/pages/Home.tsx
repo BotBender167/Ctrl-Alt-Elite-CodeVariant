@@ -3,7 +3,7 @@ import type { MotionValue } from 'motion/react'
 import { SpeakerHigh } from '@phosphor-icons/react'
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Screen } from '../components/Page'
 import { Hub } from '../features/board/Hub'
 import { RoomLight } from '../features/board/RoomLight'
@@ -33,8 +33,11 @@ function Caption({ progress, at, className, children }: { progress: MotionValue<
 
 export default function Home() {
   useTitle()
-  const reduce = useReducedMotion()
+  const reducedMotion = useReducedMotion()
   const navigate = useNavigate()
+  // Coming back from the board to switch profile skips the walk: you are already inside.
+  const skip = Boolean((useLocation().state as { skipIntro?: boolean } | null)?.skipIntro)
+  const reduce = Boolean(reducedMotion) || skip
   const lastUser = useSettings((s) => s.lastUser)
   const setLastUser = useSettings((s) => s.setLastUser)
   const sound = useSettings((s) => s.sound)
@@ -81,7 +84,7 @@ export default function Home() {
 
       {!reduce && (
         <>
-          <Caption progress={scrollYProgress} at={[0, 0.07, 0.14]} className="top-[11vh]">
+          <Caption progress={scrollYProgress} at={[0, 0.06, 0.12]} className="top-[11vh]">
             <h1 className="text-[clamp(44px,8vw,112px)] uppercase leading-[0.98] tracking-tight text-cream">
               Unfinished
               <br />
@@ -89,10 +92,10 @@ export default function Home() {
             </h1>
             <p className="mt-3 font-hand text-[clamp(24px,3.2vw,46px)] text-cream">Everyone has one.</p>
           </Caption>
-          <Caption progress={scrollYProgress} at={[0.2, 0.27, 0.42, 0.49]} className="bottom-[16vh]">
+          <Caption progress={scrollYProgress} at={[0.16, 0.22, 0.34, 0.4]} className="bottom-[16vh]">
             <p className="font-hand text-[clamp(26px,3.4vw,50px)] text-cream">Somewhere, a project is still waiting for you.</p>
           </Caption>
-          <Caption progress={scrollYProgress} at={[0.5, 0.56, 0.64, 0.71]} className="bottom-[16vh]">
+          <Caption progress={scrollYProgress} at={[0.42, 0.46, 0.52, 0.57]} className="bottom-[16vh]">
             <p className="font-hand text-[clamp(26px,3.4vw,50px)] text-cream">Let us go in and find it.</p>
           </Caption>
           <motion.div
@@ -139,7 +142,7 @@ export default function Home() {
                 if (!(e.target as HTMLElement).closest('button, a')) field.current?.focus()
               }}
             >
-              <small>Investigator ID, click to type your username</small>
+              <small>GitHub username</small>
               <label htmlFor="username" className="sr-only">
                 GitHub username
               </label>
@@ -159,7 +162,6 @@ export default function Home() {
                 aria-invalid={error ? true : undefined}
                 aria-describedby={error ? 'username-error' : undefined}
               />
-              <span className="idcard-go">drag me onto the circle</span>
               <span className="idcard-try">
                 Try{' '}
                 {DEMOS.map((d, i) => (

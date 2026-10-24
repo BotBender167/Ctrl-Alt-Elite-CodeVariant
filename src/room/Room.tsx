@@ -1,11 +1,10 @@
-import { motion, useMotionValueEvent, useReducedMotion, useScroll, useSpring, useTransform } from 'motion/react'
+import { motion, useMotionValue, useMotionValueEvent, useReducedMotion, useScroll, useSpring, useTransform } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { setScene } from '../lib/audio'
-import { doorClip, doorOpen, INTRO, INTRO_POSTER, introSource, ROOM_SRC, ROOM_SRCSET } from './intro'
+import { VIDEO_FPS, VIDEO_FRAMES } from './doorTrack'
+import { doorClip, doorOpen, INTRO_POSTER, introSource, ROOM_SRC, ROOM_SRCSET, videoFrame } from './intro'
 
 export type RoomMode = 'outside' | 'inside'
-
-const SEEK_EPSILON = 0.008
 
 function useViewport(): { w: number; h: number } {
   const [size, setSize] = useState(() => ({ w: window.innerWidth, h: window.innerHeight }))
@@ -38,37 +37,52 @@ function RoomImage() {
   )
 }
 
-// The walk. Purpose: arrival. You walk up to the house yourself, and the last stretch of scrolling swings
-// the door open onto the room: the room is drawn through a slit where the door is, and the slit widens
-// until it is the whole screen. A spring smooths the wheel so a notchy mouse still glides, and the video
-// has a keyframe on every frame so seeking is instant.
+// The walk. Purpose: arrival. You walk up to the house yourself and the door swings open in the footage.
+// The room is drawn only inside the doorway, which follows the real door frame by frame (the witch who
+// stands there is hidden behind it), and as the camera pushes in the doorway widens until the room fills the
+// screen.
+//
+// Smoothness: the footage is 25 frames a second, which would step when you scroll slowly. So two copies of the
+// video sit on top of each other, one on the frame you are at and one on the next, and the second fades in as
+// you move between them. Every frame is a keyframe, so seeking is instant, and a spring smooths the wheel.
 function Walk() {
-  const video = useRef<HTMLVideoElement>(null)
+  const first = useRef<HTMLVideoElement>(null)
+  const second = useRef<HTMLVideoElement>(null)
+  const asked = useRef<[number, number]>([-1, -1])
+  const blend = useMotionValue(0)
   const [src] = useState(introSource)
   const { w, h } = useViewport()
   const { scrollYProgress } = useScroll()
-  const smooth = useSpring(scrollYProgress, { stiffness: 140, damping: 30, mass: 0.35 })
-  const clipPath = useTransform(smooth, (v) => doorClip(doorOpen(v), w, h))
-  const roomOpacity = useTransform(smooth, (v) => (v < INTRO.doorStart - 0.005 ? 0 : 1))
-  const spill = useTransform(smooth, (v) => 1 + 0.45 * (1 - doorOpen(v)))
-  const zoom = useTransform(smooth, (v) => 0.8 + 0.2 * doorOpen(v))
-  const filter = useTransform(spill, (s) => `brightness(${s.toFixed(3)})`)
+  const smooth = useSpring(scrollYProgress, { stiffness: 100, damping: 26, mass: 0.5 })
+  const clipPath = useTransform(smooth, (v) => doorClip(v, w, h))
+  const zoom = useTransform(smooth, (v) => 0.62 + 0.38 * doorOpen(v))
+  const filter = useTransform(smooth, (v) => `brightness(${(1 + 0.5 * (1 - doorOpen(v))).toFixed(3)})`)
+
+  // Ask a video for a frame, aiming at the middle of it so rounding can never land on the one before.
+  function seek(el: HTMLVideoElement | null, frame: number, slot: 0 | 1): void {
+    if (!el || !Number.isFinite(el.duration) || asked.current[slot] === frame) return
+    asked.current[slot] = frame
+    el.currentTime = Math.min((frame + 0.5) / VIDEO_FPS, el.duration - 0.001)
+  }
 
   useMotionValueEvent(smooth, 'change', (v) => {
     setScene('walk', v)
-    const el = video.current
-    if (!el || !Number.isFinite(el.duration)) return
-    const t = Math.min(1, Math.max(0, v / INTRO.videoEnd)) * (el.duration - 0.04)
-    if (Math.abs(el.currentTime - t) > SEEK_EPSILON) el.currentTime = t
+    const f = videoFrame(v)
+    const i = Math.min(VIDEO_FRAMES - 1, Math.floor(f))
+    const next = Math.min(VIDEO_FRAMES - 1, i + 1)
+    seek(first.current, i, 0)
+    seek(second.current, next, 1)
+    blend.set(i === next ? 0 : f - i)
   })
 
   return (
     <>
       <div className="absolute inset-0">
-        <video ref={video} className="h-full w-full object-cover" src={src} poster={INTRO_POSTER} muted playsInline preload="auto" />
+        <video ref={first} className="h-full w-full object-cover" src={src} poster={INTRO_POSTER} muted playsInline preload="auto" />
+        <motion.video ref={second} className="absolute inset-0 h-full w-full object-cover" style={{ opacity: blend }} src={src} muted playsInline preload="auto" />
         <div className="absolute inset-0 bg-gradient-to-b from-room/45 via-transparent to-room/70" />
       </div>
-      <motion.div className="absolute inset-0 bg-room" style={{ clipPath, opacity: roomOpacity, filter }}>
+      <motion.div className="absolute inset-0 bg-room" style={{ clipPath, filter }}>
         <motion.div className="absolute inset-0" style={{ scale: zoom, transformOrigin: '50% 58%' }}>
           <RoomImage />
         </motion.div>

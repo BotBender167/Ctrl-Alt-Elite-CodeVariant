@@ -4,7 +4,7 @@ import { ActionZone, ZoneTray } from '../components/ActionZone'
 import { Page, Reveal } from '../components/Page'
 import { Stamp } from '../components/Stamp'
 import { toast } from '../lib/toast'
-import { CAUSE_LABEL, CAUSES, ROAD_LABEL } from '../config/rules'
+import { ROAD_LABEL, ROADS } from '../config/rules'
 import { useTitle } from '../hooks/useTitle'
 import { fmtDate, fmtDays } from '../lib/format'
 import { Grip } from '../features/board/Note'
@@ -21,7 +21,7 @@ export default function Archive() {
   const navigate = useNavigate()
   const list = Object.values(entries).sort((a, b) => b.savedAt.localeCompare(a.savedAt))
 
-  const byCause = CAUSES.map((c) => ({ c, n: list.filter((e) => e.cause === c).length }))
+  const byRoad = ROADS.map((r) => ({ r, n: list.filter((e) => e.road === r).length }))
     .filter((x) => x.n > 0)
     .sort((a, b) => b.n - a.n)
   const lives = list
@@ -30,7 +30,7 @@ export default function Archive() {
     .sort((a, b) => a - b)
   const median = lives.length > 0 ? (lives[Math.floor(lives.length / 2)] ?? 0) : null
   const short = lives.filter((n) => n <= 14).length
-  const top = byCause[0]
+  const top = byRoad[0]
 
   const isEntry = (v: unknown): v is ArchiveEntry => typeof v === 'object' && v !== null && 'key' in v && 'repo' in v && 'owner' in v
 
@@ -69,7 +69,7 @@ export default function Archive() {
             <h2 className="text-2xl">Your patterns</h2>
             {top && (
               <p className="mt-2">
-                Most common cause: <span className="font-semibold text-string">{CAUSE_LABEL[top.c]}</span>, {top.n} of {list.length}.
+                Most chosen road: <span className="font-semibold text-string">{ROAD_LABEL[top.r]}</span>, {top.n} of {list.length}.
               </p>
             )}
             {median !== null && (
@@ -78,9 +78,9 @@ export default function Archive() {
               </p>
             )}
             <ul className="mt-4 space-y-2">
-              {byCause.map(({ c, n }) => (
-                <li key={c} className="flex items-center gap-3 text-sm">
-                  <span className="w-44 flex-none text-ink-soft">{CAUSE_LABEL[c]}</span>
+              {byRoad.map(({ r, n }) => (
+                <li key={r} className="flex items-center gap-3 text-sm">
+                  <span className="w-44 flex-none text-ink-soft">{ROAD_LABEL[r]}</span>
                   <span className="h-1.5 rounded-full bg-string" style={{ width: `${(n / list.length) * 100}%`, minWidth: 8 }} />
                   <span className="tabular-nums">{n}</span>
                 </li>
@@ -128,7 +128,7 @@ function ArchiveRow({ entry: e }: { entry: ArchiveEntry }) {
           <Stamp status={e.status} />
         </p>
         <p className="mt-0.5 text-sm text-ink-soft">
-          {ROAD_LABEL[e.road]} chosen. It stopped because: {CAUSE_LABEL[e.cause].toLowerCase()}. Saved {fmtDate(e.savedAt)}.
+          {ROAD_LABEL[e.road]} chosen. Quiet for {fmtDays(e.daysSilent)} when you saved it, on {fmtDate(e.savedAt)}.
         </p>
       </div>
     </li>

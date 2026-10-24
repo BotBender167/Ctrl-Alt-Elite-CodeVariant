@@ -1,6 +1,7 @@
 // The kinds of card that can be dragged. A zone lists the kinds it accepts.
 export const CARD = {
   id: 'idcard',
+  profile: 'profile',
   repo: 'repo',
   similar: 'similar',
   road: 'road',

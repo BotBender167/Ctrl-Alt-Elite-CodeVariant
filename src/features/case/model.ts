@@ -37,8 +37,7 @@ export function useCaseModel(data: ProjectData) {
     similarCount: similar ? similar.length : null,
     daysSilent,
   })
-  const [pickedCause, setPickedCause] = useState<Cause | null>(null)
-  const cause: Cause = pickedCause ?? causes[0]?.cause ?? 'lost_interest'
+  const cause: Cause = causes[0]?.cause ?? 'lost_interest'
 
   const [picks, setPicks] = useState<Repo[]>([])
   function togglePick(repo: Repo): void {
@@ -73,9 +72,7 @@ export function useCaseModel(data: ProjectData) {
     setKeywords: setCustomKeywords,
     world,
     similar,
-    causes,
     cause,
-    setCause: setPickedCause,
     picks,
     togglePick,
     roads,

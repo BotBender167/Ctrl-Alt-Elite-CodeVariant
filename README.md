@@ -16,6 +16,7 @@ There are no action buttons for the primary actions. Every one of them is done b
 | Open a project | A project note | **Examine** |
 | Mark a project for later | A project note | **Keep** |
 | Delete a project from the board | A project note | **Shred** (Undo in the toast, or "Bring back" in the dock) |
+| Scan someone else | Your profile circle | **Switch profile** (you land back at the ID card) |
 | Compare similar projects | A similar project | The **compare tray** in the case file |
 | Save a verdict | A road (restart, continue, change, repurpose, archive) | The **verdict stamp** in the case file |
 | Reopen or delete a saved verdict | An archive entry | **Reopen** or **Shred** on the archive page |
@@ -26,14 +27,13 @@ It works without a mouse. Tab to a card, press **Enter** to pick it up, the **ar
 
 ## How it works for a first-time visitor
 
-1. **The walk.** The page opens on a haunted house. Nothing plays by itself: you scroll, and the video moves forward (and back) with you. At the end the door opens and the room appears through it, widening until it fills the screen. Turn the sound on (top right, or the button on the first screen) for a low ambience that builds as you approach, a door creak, and a lamp hum that stutters with the light.
+1. **The walk.** The page opens on a haunted house. Nothing plays by itself: you scroll, and the video moves forward (and back) with you. The door cracks and swings open (the real footage), the camera pushes into the doorway and the room fills the screen. Turn the sound on (top right, or the button on the first screen) for a low ambience that builds as you approach, a wooden crack as the door gives, a hinge that creaks as fast as you scroll, and a lamp hum that stutters with the light.
 2. **The ID card.** Type a GitHub username on the card and drag it onto the empty circle in the middle of the board. That is the scan.
-3. **The board.** Your profile sits in the middle and every project hangs off it by a red string, flying out of the circle as the board lands. Quiet projects that need a verdict sit to the left, dormant ones to the right, finished and alive ones at the edges, and inside each group the newest is nearest you. The pinning is a little messy on purpose. Point at a note to see what we know and which string it pulls. The lamp flickers the whole time.
-4. **The case file.** Drag a note onto **Examine** and it opens like a folder. Four steps, one question each:
+3. **The board.** Your profile sits in the middle and every project hangs off it by a red string, flying out of the circle as the board lands. Quiet projects that need a verdict sit to the left, dormant ones to the right, finished and alive ones at the edges, and inside each group the newest is nearest you. The pinning is a little messy on purpose. Point at a note and it unfolds in place into a card with what we know and what it is tied to; anything the card covers blurs, so only that project is readable. The lamp flickers the whole time.
+4. **The case file.** Drag a note onto **Examine** and it opens like a folder. Three steps:
    1. **When it stopped.** A trail from the first commit to the last, and the silence since.
-   2. **Why.** Every plausible reason, ranked from the evidence. Pick the one that feels true.
-   3. **Built around it.** Similar projects that appeared after you stopped. Drag up to three into the compare tray.
-   4. **Your move.** Your project against the ones in your tray, then five roads, each scored with reasons and a first move. Drag the road you choose onto the verdict stamp to save it.
+   2. **Built around it.** Similar projects that started after you stopped, with when each last moved. Drag up to three into the compare tray.
+   3. **Your move.** Your project against the ones in your tray, then five roads, each scored with reasons and a first move. Drag the road you choose onto the verdict stamp to save it.
 5. **Archive.** Saved verdicts live in the browser, with patterns across them.
 
 Every label and score is a plain rule you can read in [`src/config/rules.ts`](src/config/rules.ts) and [`src/lib/rules.ts`](src/lib/rules.ts). There is no black box.
@@ -78,7 +78,7 @@ Every animation answers one question, and stays under 500 ms. The two ambient gl
 | Lamp | Two light layers flicker out of step with each other | Keeps the board feeling alive while you read it |
 | Notes landing | Each note flies out of your profile and pins in, one after another | Shows that everything on the board is yours, and in what order |
 | Red strings | Draw from your profile to each note as it lands | Connection: every project hangs off you |
-| Pointing at a note | Its string pulls tight, the rest dim, and its details appear in a fixed panel beside the zones | Shows what we know before you commit, without covering anything on the board |
+| Pointing at a note | Its string pulls tight, the rest dim, and the note unfolds in place into its details; whatever it covers blurs | Shows what we know before you commit, and keeps only that project readable |
 | Dragging | The card lifts, matching zones light up, the one under it grows | Tells you where it can go and where it will land |
 | A drop | The card flies into the zone; a refused drop snaps back | Confirms it worked, or says it did not |
 | Note to case file | The paper glides from the note into the folder | Keeps your place: this is the project you clicked |

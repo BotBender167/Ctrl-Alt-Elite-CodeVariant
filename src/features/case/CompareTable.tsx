@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from 'motion/react'
-import { daysBetween, fmtDays, fmtStars } from '../../lib/format'
+import { daysBetween, fmtDays, fmtMonth, fmtStars } from '../../lib/format'
 import { EASE_OUT } from '../../lib/motion'
 import type { Repo } from '../../lib/types'
 
@@ -17,7 +17,8 @@ export function CompareTable({ mine, others }: { mine: Repo; others: Repo[] }) {
   const rows: Array<{ label: string; value: (r: Repo) => string }> = [
     { label: 'Stars', value: (r) => fmtStars(r.stargazers_count) },
     { label: 'Started', value: (r) => String(new Date(r.created_at).getFullYear()) },
-    { label: 'Last updated', value: (r) => `${fmtDays(lastPush(r))} ago` },
+    { label: 'Last push', value: (r) => fmtMonth(r.pushed_at ?? r.created_at) },
+    { label: 'Quiet for', value: (r) => fmtDays(lastPush(r)) },
     { label: 'Still active', value: (r) => (lastPush(r) < ACTIVE_WITHIN_DAYS ? 'Yes' : 'No') },
     { label: 'Language', value: (r) => r.language ?? 'Not stated' },
   ]
